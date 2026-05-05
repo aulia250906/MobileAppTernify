@@ -14,26 +14,36 @@ return new class extends Migration
             $table->string('id_bangsa')->nullable();
             $table->enum('jenis_kelamin', ['jantan', 'betina']);
             $table->date('tanggal_lahir')->nullable();
+            $table->decimal('berat', 5, 1)->nullable();
+            $table->enum('status', ['Sehat', 'Bunting', 'Sakit'])->default('Sehat');
+            $table->string('vaksinasi')->nullable();
             $table->string('id_induk')->nullable();
             $table->string('id_pejantan')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
-            // Self-referencing foreign keys
             $table->foreign('id_induk')
-                  ->references('id_domba')
-                  ->on('domba')
-                  ->nullOnDelete();
-
+                  ->references('id_domba')->on('domba')->nullOnDelete();
             $table->foreign('id_pejantan')
-                  ->references('id_domba')
-                  ->on('domba')
-                  ->nullOnDelete();
+                  ->references('id_domba')->on('domba')->nullOnDelete();
+        });
+
+        // Riwayat berat
+        Schema::create('riwayat_berat', function (Blueprint $table) {
+            $table->id();
+            $table->string('id_domba');
+            $table->decimal('berat', 5, 1);
+            $table->date('tanggal');
+            $table->timestamps();
+
+            $table->foreign('id_domba')
+                  ->references('id_domba')->on('domba')->cascadeOnDelete();
         });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('riwayat_berat');
         Schema::dropIfExists('domba');
     }
 };

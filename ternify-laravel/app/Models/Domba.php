@@ -16,20 +16,16 @@ class Domba extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id_domba',
-        'ear_tag',
-        'id_bangsa',
-        'jenis_kelamin',
-        'tanggal_lahir',
-        'id_induk',
-        'id_pejantan',
+        'id_domba', 'ear_tag', 'id_bangsa', 'jenis_kelamin',
+        'tanggal_lahir', 'berat', 'status', 'vaksinasi',
+        'id_induk', 'id_pejantan',
     ];
 
     protected $casts = [
         'tanggal_lahir' => 'date',
+        'berat'         => 'float',
     ];
 
-    // Auto-generate ID sebelum create
     protected static function booted(): void
     {
         static::creating(function (Domba $domba) {
@@ -39,29 +35,37 @@ class Domba extends Model
         });
     }
 
-    // === RELASI SELF-REFERENCING ===
-
-    // Induk (betina) dari domba ini
-    public function induk(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    // Self-referencing
+    public function induk()
     {
         return $this->belongsTo(Domba::class, 'id_induk', 'id_domba');
     }
 
-    // Pejantan (jantan) dari domba ini
-    public function pejantan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function pejantan()
     {
         return $this->belongsTo(Domba::class, 'id_pejantan', 'id_domba');
     }
 
-    // Anak-anak yang lahir dari domba ini sebagai induk
-    public function anakSebagaiInduk(): \Illuminate\Database\Eloquent\Relations\HasMany
+    // Riwayat berat
+    public function riwayatBerat()
     {
-        return $this->hasMany(Domba::class, 'id_induk', 'id_domba');
+        return $this->hasMany(RiwayatBerat::class, 'id_domba', 'id_domba')
+                    ->orderBy('tanggal', 'asc')
+                    ->limit(5);
     }
 
-    // Anak-anak yang lahir dari domba ini sebagai pejantan
-    public function anakSebagaipejantan(): \Illuminate\Database\Eloquent\Relations\HasMany
+    // Riwayat kandang
+    public function riwayatKandang()
     {
-        return $this->hasMany(Domba::class, 'id_pejantan', 'id_domba');
+        return $this->hasMany(RiwayatKandang::class, 'id_domba', 'id_domba')
+                    ->orderBy('tanggal_masuk', 'desc');
+    }
+
+    // Kandang aktif saat ini (tanggal_keluar null)
+    public function kandangAktif()
+    {
+        return $this->hasOne(RiwayatKandang::class, 'id_domba', 'id_domba')
+                    ->whereNull('tanggal_keluar')
+                    ->latest('tanggal_masuk');
     }
 }

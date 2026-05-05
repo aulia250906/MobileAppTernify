@@ -87,11 +87,13 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
         : const Color(0xFFFCE4EC);
   }
 
-  // ── navigasi ke form ────────────────────────────────────────────────────────
+  // ── navigasi ke form (pop-up modal) ─────────────────────────────────────────
   void _openForm({Domba? domba}) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => DombaFormScreen(domba: domba)),
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DombaFormModal(domba: domba),
     );
     if (result == true) _loadAll();
   }
@@ -817,19 +819,25 @@ class _DetailDombaModal extends StatelessWidget {
   }
 }
 
-// ─── Form Tambah / Edit ───────────────────────────────────────────────────────
+// ─── Form Tambah / Edit (Pop-up Modal) ────────────────────────────────────────
 
-class DombaFormScreen extends StatefulWidget {
+class _DombaFormModal extends StatefulWidget {
   final Domba? domba;
 
-  const DombaFormScreen({super.key, this.domba});
+  const _DombaFormModal({this.domba});
 
   @override
-  State<DombaFormScreen> createState() => _DombaFormScreenState();
+  State<_DombaFormModal> createState() => _DombaFormModalState();
 }
 
-class _DombaFormScreenState extends State<DombaFormScreen> {
-  static const Color navyDark = Color(0xFF1A2B45);
+class _DombaFormModalState extends State<_DombaFormModal>
+    with SingleTickerProviderStateMixin {
+  static const Color navyDark   = Color(0xFF1A2B45);
+  static const Color beigeLight = Color(0xFFFAF7F2);
+  static const Color textMuted  = Color(0xFF8A9BB0);
+  static const Color cardBg     = Color(0xFFF5EFE4);
+  static const Color borderClr  = Color(0xFFEAE4D8);
+  static const Color accentGold = Color(0xFFC9A96E);
 
   final _formKey       = GlobalKey<FormState>();
   final _repo          = DombaRepository();
@@ -846,11 +854,21 @@ class _DombaFormScreenState extends State<DombaFormScreen> {
   bool _isSaving           = false;
   bool _isLoadingDropdown  = false;
 
+  late AnimationController _animCtrl;
+  late Animation<double> _fadeAnim;
+
   bool get isEdit => widget.domba != null;
 
   @override
   void initState() {
     super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic);
+    _animCtrl.forward();
+
     _loadDropdowns();
     if (isEdit) _prefill();
   }
@@ -862,7 +880,9 @@ class _DombaFormScreenState extends State<DombaFormScreen> {
     _jenisKelamin       = d.jenisKelamin;
     _idInduk            = d.idInduk;
     _idPejantan         = d.idPejantan;
-    if (d.tanggalLahir != null) _tanggalLahir = DateTime.tryParse(d.tanggalLahir!);
+    if (d.tanggalLahir != null) {
+      _tanggalLahir = DateTime.tryParse(d.tanggalLahir!);
+    }
   }
 
   Future<void> _loadDropdowns() async {
@@ -886,6 +906,19 @@ class _DombaFormScreenState extends State<DombaFormScreen> {
       initialDate: _tanggalLahir ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: navyDark,
+              onPrimary: Colors.white,
+              surface: beigeLight,
+              onSurface: navyDark,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) setState(() => _tanggalLahir = picked);
   }
@@ -913,14 +946,25 @@ class _DombaFormScreenState extends State<DombaFormScreen> {
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isEdit ? 'Data berhasil diperbarui.' : 'Domba berhasil ditambahkan.'),
+          content: Text(
+            isEdit ? 'Data berhasil diperbarui.' : 'Domba berhasil ditambahkan.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          backgroundColor: navyDark,
         ));
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -931,105 +975,129 @@ class _DombaFormScreenState extends State<DombaFormScreen> {
   void dispose() {
     _earTagCtrl.dispose();
     _bangsaCtrl.dispose();
+    _animCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: navyDark,
-        foregroundColor: Colors.white,
-        title: Text(isEdit ? 'Edit Domba' : 'Tambah Domba'),
-        elevation: 0,
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.92,
+        ),
+        decoration: const BoxDecoration(
+          color: beigeLight,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _field(_earTagCtrl, 'Ear Tag *', Icons.tag,
-                validator: (v) => (v == null || v.isEmpty) ? 'Wajib diisi' : null),
-            _field(_bangsaCtrl, 'Jenis / Bangsa', Icons.category_outlined),
-            const SizedBox(height: 4),
-            // Jenis kelamin
-            _dropdown<String>(
-              label: 'Jenis Kelamin *',
-              icon: Icons.wc,
-              value: _jenisKelamin,
-              items: const [
-                DropdownMenuItem(value: 'jantan', child: Text('Jantan')),
-                DropdownMenuItem(value: 'betina', child: Text('Betina')),
-              ],
-              onChanged: (v) => setState(() {
-                _jenisKelamin = v;
-                _idInduk = null;
-                _idPejantan = null;
-              }),
-              validator: (v) => v == null ? 'Wajib dipilih' : null,
-            ),
-            // Tanggal lahir
-            const SizedBox(height: 4),
-            InkWell(
-              onTap: _pickTanggal,
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Tanggal Lahir',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
+            _buildHandle(),
+            _buildHeader(),
+            Flexible(
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(20, 4, 20, bottomInset + 24),
+                  shrinkWrap: true,
+                  children: [
+                    const SizedBox(height: 8),
+                    // ── Identitas Domba Card ──
+                    _sectionLabel('IDENTITAS DOMBA'),
+                    const SizedBox(height: 8),
+                    _styledField(
+                      controller: _earTagCtrl,
+                      label: 'Ear Tag',
+                      hint: 'Contoh: DOM-001',
+                      icon: Icons.tag,
+                      isRequired: true,
+                      validator: (v) =>
+                          (v == null || v.isEmpty) ? 'Wajib diisi' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    _styledField(
+                      controller: _bangsaCtrl,
+                      label: 'Jenis / Bangsa',
+                      hint: 'Contoh: Domba Etawa',
+                      icon: Icons.category_outlined,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ── Jenis Kelamin (Toggle Cards) ──
+                    _sectionLabel('JENIS KELAMIN *'),
+                    const SizedBox(height: 8),
+                    _buildGenderToggle(),
+                    if (_jenisKelamin == null)
+                      const SizedBox.shrink(),
+                    const SizedBox(height: 16),
+
+                    // ── Tanggal Lahir ──
+                    _sectionLabel('TANGGAL LAHIR'),
+                    const SizedBox(height: 8),
+                    _buildDatePickerField(),
+                    const SizedBox(height: 16),
+
+                    // ── Garis Keturunan ──
+                    _sectionLabel('GARIS KETURUNAN'),
+                    const SizedBox(height: 8),
+                    if (_isLoadingDropdown)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 24, height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5, color: navyDark,
+                            ),
+                          ),
+                        ),
+                      )
+                    else ...[
+                      _styledDropdown<String>(
+                        label: 'Induk (Betina)',
+                        icon: Icons.female,
+                        value: _idInduk,
+                        items: [
+                          const DropdownMenuItem(
+                              value: null, child: Text('— Tidak ada —')),
+                          ..._listBetina
+                              .where((d) =>
+                                  !isEdit || d.idDomba != widget.domba!.idDomba)
+                              .map((d) => DropdownMenuItem(
+                                  value: d.idDomba, child: Text(d.earTag))),
+                        ],
+                        onChanged: (v) => setState(() => _idInduk = v),
+                      ),
+                      const SizedBox(height: 12),
+                      _styledDropdown<String>(
+                        label: 'Pejantan (Jantan)',
+                        icon: Icons.male,
+                        value: _idPejantan,
+                        items: [
+                          const DropdownMenuItem(
+                              value: null, child: Text('— Tidak ada —')),
+                          ..._listJantan
+                              .where((d) =>
+                                  !isEdit || d.idDomba != widget.domba!.idDomba)
+                              .map((d) => DropdownMenuItem(
+                                  value: d.idDomba, child: Text(d.earTag))),
+                        ],
+                        onChanged: (v) => setState(() => _idPejantan = v),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+
+                    // ── Action Buttons ──
+                    _buildActionButtons(),
+                    const SizedBox(height: 8),
+                  ],
                 ),
-                child: Text(
-                  _tanggalLahir != null
-                      ? '${_tanggalLahir!.day}/${_tanggalLahir!.month}/${_tanggalLahir!.year}'
-                      : 'Pilih tanggal...',
-                  style: TextStyle(color: _tanggalLahir != null ? null : Colors.grey),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            if (_isLoadingDropdown)
-              const LinearProgressIndicator()
-            else ...[
-              _dropdown<String>(
-                label: 'Induk (betina)',
-                icon: Icons.female,
-                value: _idInduk,
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('— Tidak ada —')),
-                  ..._listBetina
-                      .where((d) => !isEdit || d.idDomba != widget.domba!.idDomba)
-                      .map((d) => DropdownMenuItem(value: d.idDomba, child: Text(d.earTag))),
-                ],
-                onChanged: (v) => setState(() => _idInduk = v),
-              ),
-              _dropdown<String>(
-                label: 'Pejantan (jantan)',
-                icon: Icons.male,
-                value: _idPejantan,
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('— Tidak ada —')),
-                  ..._listJantan
-                      .where((d) => !isEdit || d.idDomba != widget.domba!.idDomba)
-                      .map((d) => DropdownMenuItem(value: d.idDomba, child: Text(d.earTag))),
-                ],
-                onChanged: (v) => setState(() => _idPejantan = v),
-              ),
-            ],
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: navyDark,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _isSaving
-                    ? const SizedBox(height: 20, width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(isEdit ? 'Simpan Perubahan' : 'Tambah Domba',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -1038,44 +1106,448 @@ class _DombaFormScreenState extends State<DombaFormScreen> {
     );
   }
 
-  Widget _field(TextEditingController ctrl, String label, IconData icon,
-      {TextInputType? keyboardType, String? Function(String?)? validator}) {
+  // ── Handle ──
+  Widget _buildHandle() {
+    return Center(
+      child: Container(
+        width: 40, height: 4,
+        margin: const EdgeInsets.only(top: 12, bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+
+  // ── Header ──
+  Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1A2B45), Color(0xFF2A3F5F)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.pets, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isEdit ? 'Edit Domba' : 'Tambah Domba',
+                  style: const TextStyle(
+                    fontFamily: 'Georgia',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: navyDark,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isEdit
+                      ? 'Perbarui informasi domba'
+                      : 'Isi data domba baru',
+                  style: const TextStyle(fontSize: 12, color: textMuted),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 34, height: 34,
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.close, size: 16, color: navyDark),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Section Label ──
+  Widget _sectionLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.2,
+        color: textMuted,
+      ),
+    );
+  }
+
+  // ── Styled Text Field ──
+  Widget _styledField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    required IconData icon,
+    bool isRequired = false,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderClr),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: TextFormField(
-        controller: ctrl,
-        keyboardType: keyboardType,
+        controller: controller,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: navyDark,
+        ),
         decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          prefixIcon: Icon(icon),
+          labelText: isRequired ? '$label *' : label,
+          labelStyle: const TextStyle(
+            fontSize: 13,
+            color: textMuted,
+            fontWeight: FontWeight.w500,
+          ),
+          hintText: hint,
+          hintStyle: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade400,
+          ),
+          prefixIcon: Container(
+            margin: const EdgeInsets.only(left: 12, right: 8),
+            child: Icon(icon, size: 18, color: accentGold),
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 42, minHeight: 42,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16, vertical: 14,
+          ),
         ),
         validator: validator,
       ),
     );
   }
 
-  Widget _dropdown<T>({
+  // ── Gender Toggle Cards ──
+  Widget _buildGenderToggle() {
+    return Row(
+      children: [
+        Expanded(
+          child: _genderCard(
+            label: 'Jantan',
+            icon: Icons.male,
+            value: 'jantan',
+            color: const Color(0xFF2196F3),
+            bgColor: const Color(0xFFE3F2FD),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _genderCard(
+            label: 'Betina',
+            icon: Icons.female,
+            value: 'betina',
+            color: const Color(0xFFE91E63),
+            bgColor: const Color(0xFFFCE4EC),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _genderCard({
+    required String label,
+    required IconData icon,
+    required String value,
+    required Color color,
+    required Color bgColor,
+  }) {
+    final isSelected = _jenisKelamin == value;
+    return GestureDetector(
+      onTap: () => setState(() {
+        _jenisKelamin = value;
+        _idInduk = null;
+        _idPejantan = null;
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? bgColor : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? color : borderClr,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Column(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: isSelected ? color.withOpacity(0.15) : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                size: 24,
+                color: isSelected ? color : textMuted,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? color : textMuted,
+              ),
+            ),
+            if (isSelected) ...[
+              const SizedBox(height: 4),
+              Container(
+                width: 18, height: 3,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Date Picker Field ──
+  Widget _buildDatePickerField() {
+    final hasDate = _tanggalLahir != null;
+    return GestureDetector(
+      onTap: _pickTanggal,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderClr),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: hasDate ? const Color(0xFFE8F5E9) : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.calendar_today,
+                size: 16,
+                color: hasDate ? const Color(0xFF4CAF50) : textMuted,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tanggal Lahir',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    hasDate
+                        ? '${_tanggalLahir!.day.toString().padLeft(2, '0')}/${_tanggalLahir!.month.toString().padLeft(2, '0')}/${_tanggalLahir!.year}'
+                        : 'Pilih tanggal...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: hasDate ? FontWeight.w600 : FontWeight.w400,
+                      color: hasDate ? navyDark : Colors.grey.shade400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Styled Dropdown ──
+  Widget _styledDropdown<T>({
     required String label,
     required IconData icon,
     required T? value,
     required List<DropdownMenuItem<T>> items,
     required void Function(T?) onChanged,
-    String? Function(T?)? validator,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderClr),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: DropdownButtonFormField<T>(
         value: value,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: navyDark,
+        ),
+        icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400, size: 20),
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
-          prefixIcon: Icon(icon),
+          labelStyle: const TextStyle(
+            fontSize: 13,
+            color: textMuted,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: Container(
+            margin: const EdgeInsets.only(left: 12, right: 8),
+            child: Icon(icon, size: 18, color: accentGold),
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 42, minHeight: 42,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16, vertical: 14,
+          ),
         ),
         items: items,
         onChanged: onChanged,
-        validator: validator,
+        dropdownColor: Colors.white,
+        borderRadius: BorderRadius.circular(12),
       ),
+    );
+  }
+
+  // ── Action Buttons ──
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: navyDark,
+              side: const BorderSide(color: Color(0xFFBFB8A8), width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: const Text(
+              'Batal',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: ElevatedButton(
+            onPressed: _isSaving ? null : _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: navyDark,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              disabledBackgroundColor: navyDark.withOpacity(0.6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: _isSaving
+                ? const SizedBox(
+                    height: 20, width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isEdit ? Icons.save_outlined : Icons.add,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isEdit ? 'Simpan' : 'Tambah Domba',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
     );
   }
 }
