@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/kandang_model.dart';
 import '../repositories/kandang_repository.dart';
+import '../widgets/app_popup.dart';
 import 'data_domba_screen.dart';
 
 class KandangScreen extends StatefulWidget {
@@ -434,19 +435,21 @@ class _KandangScreenState extends State<KandangScreen> {
             }
             if (mounted) {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(kandang == null
+              AppPopup.show(
+                context,
+                message: kandang == null
                     ? 'Kandang berhasil ditambahkan.'
-                    : 'Kandang berhasil diperbarui.'),
-              ));
+                    : 'Kandang berhasil diperbarui.',
+              );
               _loadAll();
             }
           } catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(e.toString()),
-                backgroundColor: Colors.red,
-              ));
+              AppPopup.show(
+                context,
+                message: e.toString(),
+                isError: true,
+              );
             }
           }
         },
@@ -482,16 +485,15 @@ class _KandangScreenState extends State<KandangScreen> {
                 try {
                   await _repo.deleteKandang(k.idKandang);
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Kandang berhasil dihapus.')),
-                    );
+                    AppPopup.show(context, message: 'Kandang berhasil dihapus.');
                     _loadAll();
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.toString()),
-                          backgroundColor: Colors.red),
+                    AppPopup.show(
+                      context,
+                      message: e.toString(),
+                      isError: true,
                     );
                   }
                 }
@@ -554,14 +556,12 @@ class _KandangFormSheetState extends State<_KandangFormSheet> {
 
   Future<void> _submit() async {
     if (_namaCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama kandang wajib diisi.')),
+      AppPopup.show(context, message: 'Nama kandang wajib diisi.', isError: true
       );
       return;
     }
     if (_kapasitasCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kapasitas wajib diisi.')),
+      AppPopup.show(context, message: 'Kapasitas wajib diisi.', isError: true
       );
       return;
     }

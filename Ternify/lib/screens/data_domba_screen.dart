@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/domba_model.dart';
 import '../repositories/domba_repository.dart';
+import '../widgets/app_popup.dart';
 
 // ─── Screen utama ─────────────────────────────────────────────────────────────
 
@@ -123,15 +124,18 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
       try {
         await _repo.deleteDomba(d.idDomba);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Domba "${d.earTag}" berhasil dihapus.')),
+          AppPopup.show(
+            context,
+            message: 'Domba "${d.earTag}" berhasil dihapus.',
           );
           _loadAll();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+          AppPopup.show(
+            context,
+            message: e.toString(),
+            isError: true,
           );
         }
       }
@@ -945,25 +949,18 @@ class _DombaFormModalState extends State<_DombaFormModal>
         await _repo.createDomba(payload);
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-            isEdit ? 'Data berhasil diperbarui.' : 'Domba berhasil ditambahkan.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          backgroundColor: navyDark,
-        ));
+        AppPopup.show(
+          context,
+          message: isEdit ? 'Data berhasil diperbarui.' : 'Domba berhasil ditambahkan.',
+        );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+        AppPopup.show(
+          context,
+          message: e.toString(),
+          isError: true,
         );
       }
     } finally {
