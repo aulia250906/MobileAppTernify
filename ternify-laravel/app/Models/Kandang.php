@@ -16,7 +16,7 @@ class Kandang extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id_kandang', 'nama_kandang', 'tipe_kandang', 'kapasitas',
+        'id_kandang', 'user_id', 'nama_kandang', 'tipe_kandang', 'kapasitas',
     ];
 
     protected $casts = [
@@ -30,6 +30,12 @@ class Kandang extends Model
                 $kandang->id_kandang = 'KDG-' . strtoupper(Str::random(6));
             }
         });
+    }
+
+    // Pemilik kandang
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     // Semua riwayat kandang

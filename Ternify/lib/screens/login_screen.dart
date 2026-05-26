@@ -246,8 +246,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           : 'Daftar untuk mulai mengelola peternakan',
                       style: const TextStyle(fontSize: 13.5, color: textMuted),
                     ),
-                    const SizedBox(height: 24),
-                    _buildSegmentedControl(),
                     const SizedBox(height: 28),
                     if (_selectedTab == 0) _buildMasukForm(),
                     if (_selectedTab == 1) _buildDaftarForm(),
@@ -443,6 +441,58 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 20),
 
+        // ── Divider "atau" ──
+        Row(
+          children: [
+            Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'atau',
+                style: TextStyle(fontSize: 13, color: textMuted, fontWeight: FontWeight.w400),
+              ),
+            ),
+            Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // ── Tombol Daftar dengan Google ──
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              // TODO: Implement Google Sign-In
+            },
+            icon: Image.network(
+              'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+              width: 20,
+              height: 20,
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                Icons.g_mobiledata_rounded,
+                size: 24,
+                color: Color(0xFF1A2B45),
+              ),
+            ),
+            label: const Text(
+              'Daftar dengan Google',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A2B45),
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFDDD8CE), width: 1.2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              backgroundColor: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Link Sudah punya akun ──
         Center(
           child: GestureDetector(
             onTap: () => setState(() => _selectedTab = 0),

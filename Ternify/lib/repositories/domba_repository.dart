@@ -158,4 +158,23 @@ class DombaRepository {
       throw 'Tidak dapat terhubung ke server: $e';
     }
   }
+
+  /// GET /api/domba/statistik — Statistik domba untuk dashboard
+  Future<Map<String, dynamic>> fetchStatistik() async {
+    try {
+      final res = await http.get(
+        Uri.parse('${ApiService.baseUrl}/domba/statistik'),
+        headers: await ApiService.authHeaders(),
+      );
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+      if (res.statusCode == 200) {
+        return body['data'] as Map<String, dynamic>;
+      }
+      throw body['message'] ?? 'Terjadi kesalahan.';
+    } catch (e) {
+      if (e is String) rethrow;
+      throw 'Tidak dapat terhubung ke server: $e';
+    }
+  }
 }

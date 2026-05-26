@@ -14,25 +14,30 @@ class KandangController extends Controller
 {
     /**
      * GET /api/kandang
-     * Daftar semua kandang beserta jumlah domba masing-masing
+     * Daftar kandang milik user yang login
      */
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $kandang = Kandang::all();
+        $kandang = Kandang::where('user_id', $request->user()->id)->get();
         return KandangResource::collection($kandang);
     }
 
     /**
      * POST /api/kandang
-     * Tambah kandang baru
+     * Tambah kandang baru (otomatis milik user yang login)
      */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'nama_kandang'  => 'required|string|max:100|unique:kandang,nama_kandang',
+            'nama_kandang'  => [
+                'required', 'string', 'max:100',
+                Rule::unique('kandang', 'nama_kandang')->where('user_id', $request->user()->id),
+            ],
             'tipe_kandang'  => 'nullable|string|max:100',
             'kapasitas'     => 'required|integer|min:1|max:9999',
         ]);
+
+        $validated['user_id'] = $request->user()->id;
 
         $kandang = Kandang::create($validated);
 
@@ -44,25 +49,31 @@ class KandangController extends Controller
 
     /**
      * GET /api/kandang/{id}
-     * Detail satu kandang
+     * Detail satu kandang (hanya milik user yang login)
      */
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        $kandang = Kandang::findOrFail($id);
+        $kandang = Kandang::where('user_id', $request->user()->id)
+                          ->findOrFail($id);
         return response()->json(['data' => new KandangResource($kandang)]);
     }
 
     /**
      * PUT /api/kandang/{id}
-     * Update kandang
+     * Update kandang (hanya milik user yang login)
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $kandang = Kandang::findOrFail($id);
+        $kandang = Kandang::where('user_id', $request->user()->id)
+                          ->findOrFail($id);
 
         $validated = $request->validate([
-            'nama_kandang'  => ['sometimes', 'string', 'max:100',
-                Rule::unique('kandang', 'nama_kandang')->ignore($kandang->id_kandang, 'id_kandang')],
+            'nama_kandang'  => [
+                'sometimes', 'string', 'max:100',
+                Rule::unique('kandang', 'nama_kandang')
+                    ->ignore($kandang->id_kandang, 'id_kandang')
+                    ->where('user_id', $request->user()->id),
+            ],
             'tipe_kandang'  => 'nullable|string|max:100',
             'kapasitas'     => 'sometimes|integer|min:1|max:9999',
         ]);
@@ -77,11 +88,12 @@ class KandangController extends Controller
 
     /**
      * DELETE /api/kandang/{id}
-     * Hapus kandang (soft delete)
+     * Hapus kandang (soft delete, hanya milik user yang login)
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        $kandang = Kandang::findOrFail($id);
+        $kandang = Kandang::where('user_id', $request->user()->id)
+                          ->findOrFail($id);
 
         // Cegah hapus jika masih ada domba di kandang
         if ($kandang->jumlah_domba > 0) {
@@ -96,11 +108,11 @@ class KandangController extends Controller
 
     /**
      * GET /api/kandang/statistik
-     * Ringkasan untuk summary cards
+     * Ringkasan kandang milik user untuk summary cards
      */
-    public function statistik(): JsonResponse
+    public function statistik(Request $request): JsonResponse
     {
-        $kandang = Kandang::all();
+        $kandang = Kandang::where('user_id', $request->user()->id)->get();
 
         $totalDomba = $kandang->sum(fn($k) => $k->jumlah_domba);
 

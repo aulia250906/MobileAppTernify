@@ -14,11 +14,12 @@ class DombaController extends Controller
 {
     /**
      * GET /api/domba
-     * Daftar semua domba (dengan filter opsional)
+     * Daftar domba milik user yang login (dengan filter opsional)
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = Domba::with(['induk', 'pejantan']);
+        $query = Domba::with(['induk', 'pejantan'])
+                      ->where('user_id', $request->user()->id);
 
         // Filter by jenis_kelamin
         if ($request->filled('jenis_kelamin')) {
@@ -42,7 +43,7 @@ class DombaController extends Controller
 
     /**
      * POST /api/domba
-     * Tambah domba baru
+     * Tambah domba baru (otomatis milik user yang login)
      */
     public function store(Request $request): JsonResponse
     {
@@ -55,11 +56,16 @@ class DombaController extends Controller
                 'nullable',
                 'string',
                 Rule::exists('domba', 'id_domba'),
-                // Induk harus betina
-                function ($attribute, $value, $fail) {
+                function ($attribute, $value, $fail) use ($request) {
                     if ($value) {
-                        $induk = Domba::find($value);
-                        if ($induk && $induk->jenis_kelamin !== 'betina') {
+                        $induk = Domba::where('id_domba', $value)
+                                      ->where('user_id', $request->user()->id)
+                                      ->first();
+                        if (!$induk) {
+                            $fail('Induk tidak ditemukan.');
+                            return;
+                        }
+                        if ($induk->jenis_kelamin !== 'betina') {
                             $fail('Induk harus domba betina.');
                         }
                     }
@@ -69,17 +75,24 @@ class DombaController extends Controller
                 'nullable',
                 'string',
                 Rule::exists('domba', 'id_domba'),
-                // Pejantan harus jantan
-                function ($attribute, $value, $fail) {
+                function ($attribute, $value, $fail) use ($request) {
                     if ($value) {
-                        $pejantan = Domba::find($value);
-                        if ($pejantan && $pejantan->jenis_kelamin !== 'jantan') {
+                        $pejantan = Domba::where('id_domba', $value)
+                                         ->where('user_id', $request->user()->id)
+                                         ->first();
+                        if (!$pejantan) {
+                            $fail('Pejantan tidak ditemukan.');
+                            return;
+                        }
+                        if ($pejantan->jenis_kelamin !== 'jantan') {
                             $fail('Pejantan harus domba jantan.');
                         }
                     }
                 },
             ],
         ]);
+
+        $validated['user_id'] = $request->user()->id;
 
         $domba = Domba::create($validated);
         $domba->load(['induk', 'pejantan']);
@@ -92,11 +105,13 @@ class DombaController extends Controller
 
     /**
      * GET /api/domba/{id}
-     * Detail satu domba
+     * Detail satu domba (hanya milik user yang login)
      */
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        $domba = Domba::with(['induk', 'pejantan'])->findOrFail($id);
+        $domba = Domba::with(['induk', 'pejantan'])
+                      ->where('user_id', $request->user()->id)
+                      ->findOrFail($id);
 
         return response()->json([
             'data' => new DombaResource($domba),
@@ -105,11 +120,12 @@ class DombaController extends Controller
 
     /**
      * PUT /api/domba/{id}
-     * Update data domba
+     * Update data domba (hanya milik user yang login)
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $domba = Domba::findOrFail($id);
+        $domba = Domba::where('user_id', $request->user()->id)
+                      ->findOrFail($id);
 
         $validated = $request->validate([
             'ear_tag'       => ['sometimes', 'string', 'max:50', Rule::unique('domba', 'ear_tag')->ignore($domba->id_domba, 'id_domba')],
@@ -120,14 +136,20 @@ class DombaController extends Controller
                 'nullable',
                 'string',
                 Rule::exists('domba', 'id_domba'),
-                function ($attribute, $value, $fail) use ($id) {
+                function ($attribute, $value, $fail) use ($id, $request) {
                     if ($value) {
                         if ($value === $id) {
                             $fail('Domba tidak bisa menjadi induk dirinya sendiri.');
                             return;
                         }
-                        $induk = Domba::find($value);
-                        if ($induk && $induk->jenis_kelamin !== 'betina') {
+                        $induk = Domba::where('id_domba', $value)
+                                      ->where('user_id', $request->user()->id)
+                                      ->first();
+                        if (!$induk) {
+                            $fail('Induk tidak ditemukan.');
+                            return;
+                        }
+                        if ($induk->jenis_kelamin !== 'betina') {
                             $fail('Induk harus domba betina.');
                         }
                     }
@@ -137,14 +159,20 @@ class DombaController extends Controller
                 'nullable',
                 'string',
                 Rule::exists('domba', 'id_domba'),
-                function ($attribute, $value, $fail) use ($id) {
+                function ($attribute, $value, $fail) use ($id, $request) {
                     if ($value) {
                         if ($value === $id) {
                             $fail('Domba tidak bisa menjadi pejantan dirinya sendiri.');
                             return;
                         }
-                        $pejantan = Domba::find($value);
-                        if ($pejantan && $pejantan->jenis_kelamin !== 'jantan') {
+                        $pejantan = Domba::where('id_domba', $value)
+                                         ->where('user_id', $request->user()->id)
+                                         ->first();
+                        if (!$pejantan) {
+                            $fail('Pejantan tidak ditemukan.');
+                            return;
+                        }
+                        if ($pejantan->jenis_kelamin !== 'jantan') {
                             $fail('Pejantan harus domba jantan.');
                         }
                     }
@@ -163,11 +191,12 @@ class DombaController extends Controller
 
     /**
      * DELETE /api/domba/{id}
-     * Hapus domba (soft delete)
+     * Hapus domba (soft delete, hanya milik user yang login)
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        $domba = Domba::findOrFail($id);
+        $domba = Domba::where('user_id', $request->user()->id)
+                      ->findOrFail($id);
         $domba->delete();
 
         return response()->json([
@@ -177,11 +206,12 @@ class DombaController extends Controller
 
     /**
      * GET /api/domba/betina/list
-     * Daftar domba betina saja (untuk pilihan induk)
+     * Daftar domba betina milik user (untuk pilihan induk)
      */
-    public function listBetina(): AnonymousResourceCollection
+    public function listBetina(Request $request): AnonymousResourceCollection
     {
-        $domba = Domba::where('jenis_kelamin', 'betina')
+        $domba = Domba::where('user_id', $request->user()->id)
+                      ->where('jenis_kelamin', 'betina')
                       ->select('id_domba', 'ear_tag', 'tanggal_lahir')
                       ->get();
 
@@ -190,14 +220,54 @@ class DombaController extends Controller
 
     /**
      * GET /api/domba/jantan/list
-     * Daftar domba jantan saja (untuk pilihan pejantan)
+     * Daftar domba jantan milik user (untuk pilihan pejantan)
      */
-    public function listJantan(): AnonymousResourceCollection
+    public function listJantan(Request $request): AnonymousResourceCollection
     {
-        $domba = Domba::where('jenis_kelamin', 'jantan')
+        $domba = Domba::where('user_id', $request->user()->id)
+                      ->where('jenis_kelamin', 'jantan')
                       ->select('id_domba', 'ear_tag', 'tanggal_lahir')
                       ->get();
 
         return DombaResource::collection($domba);
+    }
+
+    /**
+     * GET /api/domba/statistik
+     * Ringkasan statistik domba milik user untuk dashboard
+     */
+    public function statistik(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $total       = Domba::where('user_id', $userId)->count();
+        $totalJantan = Domba::where('user_id', $userId)->where('jenis_kelamin', 'jantan')->count();
+        $totalBetina = Domba::where('user_id', $userId)->where('jenis_kelamin', 'betina')->count();
+
+        // Status kesehatan
+        $sehat   = Domba::where('user_id', $userId)->where('status', 'Sehat')->count();
+        $bunting = Domba::where('user_id', $userId)->where('status', 'Bunting')->count();
+        $sakit   = Domba::where('user_id', $userId)->where('status', 'Sakit')->count();
+
+        // 5 domba terbaru milik user
+        $terbaru = Domba::with(['induk', 'pejantan'])
+                        ->where('user_id', $userId)
+                        ->latest()
+                        ->take(5)
+                        ->get();
+
+        return response()->json([
+            'data' => [
+                'total_domba'   => $total,
+                'total_jantan'  => $totalJantan,
+                'total_betina'  => $totalBetina,
+                'status' => [
+                    'sehat'   => $sehat,
+                    'bunting' => $bunting,
+                    'sakit'   => $sakit,
+                ],
+                'domba_terbaru' => DombaResource::collection($terbaru),
+            ],
+        ]);
     }
 }

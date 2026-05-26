@@ -21,4 +21,14 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
     ];
+
+    public function domba()
+    {
+        return $this->hasMany(Domba::class);
+    }
+
+    public function kandang()
+    {
+        return $this->hasMany(Kandang::class);
+    }
 }

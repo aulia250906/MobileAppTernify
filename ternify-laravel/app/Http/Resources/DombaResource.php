@@ -15,6 +15,9 @@ class DombaResource extends JsonResource
             'id_bangsa'     => $this->id_bangsa,
             'jenis_kelamin' => $this->jenis_kelamin,
             'tanggal_lahir' => $this->tanggal_lahir?->format('Y-m-d'),
+            'berat'         => $this->berat,
+            'status'        => $this->status,
+            'vaksinasi'     => $this->vaksinasi,
             'id_induk'      => $this->id_induk,
             'id_pejantan'   => $this->id_pejantan,
 

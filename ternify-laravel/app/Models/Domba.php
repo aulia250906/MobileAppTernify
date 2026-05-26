@@ -16,7 +16,7 @@ class Domba extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id_domba', 'ear_tag', 'id_bangsa', 'jenis_kelamin',
+        'id_domba', 'user_id', 'ear_tag', 'id_bangsa', 'jenis_kelamin',
         'tanggal_lahir', 'berat', 'status', 'vaksinasi',
         'id_induk', 'id_pejantan',
     ];
@@ -33,6 +33,12 @@ class Domba extends Model
                 $domba->id_domba = 'DMB-' . strtoupper(Str::random(8));
             }
         });
+    }
+
+    // Pemilik domba
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     // Self-referencing
