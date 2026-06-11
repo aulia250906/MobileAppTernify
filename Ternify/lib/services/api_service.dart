@@ -204,4 +204,149 @@ static const String baseUrl = 'http://127.0.0.1:8000/api';
       return {'success': false, 'message': 'Koneksi gagal: $e'};
     }
   }
+    // ─────────────────────────────────────────────
+  // DOMBA API
+  // ─────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> fetchDomba({
+    String? search,
+    String? jenisKelamin,
+  }) async {
+    final query = <String, String>{};
+
+    if (search != null && search.trim().isNotEmpty) {
+      query['search'] = search.trim();
+    }
+
+    if (jenisKelamin != null && jenisKelamin.isNotEmpty) {
+      query['jenis_kelamin'] = jenisKelamin;
+    }
+
+    final uri = Uri.parse('$baseUrl/domba').replace(queryParameters: query);
+
+    final response = await http.get(
+      uri,
+      headers: await authHeaders(),
+    );
+
+    final decoded = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = decoded['data'];
+
+      if (data is List) {
+        return data.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+
+      return [];
+    }
+
+    throw Exception(decoded['message'] ?? 'Gagal mengambil data domba');
+  }
+
+  static Future<Map<String, dynamic>> createDomba(
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/domba'),
+      headers: await authHeaders(),
+      body: jsonEncode(payload),
+    );
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return decoded;
+    }
+
+    throw Exception(decoded['message'] ?? 'Gagal menambahkan domba');
+  }
+
+  static Future<Map<String, dynamic>> updateDomba(
+    String idDomba,
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/domba/$idDomba'),
+      headers: await authHeaders(),
+      body: jsonEncode(payload),
+    );
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return decoded;
+    }
+
+    throw Exception(decoded['message'] ?? 'Gagal memperbarui domba');
+  }
+
+  static Future<void> deleteDomba(String idDomba) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/domba/$idDomba'),
+      headers: await authHeaders(),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(decoded['message'] ?? 'Gagal menghapus domba');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchBetina() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/domba/betina/list'),
+      headers: await authHeaders(),
+    );
+
+    final decoded = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = decoded['data'];
+
+      if (data is List) {
+        return data.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+
+      return [];
+    }
+
+    throw Exception(decoded['message'] ?? 'Gagal mengambil data betina');
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchJantan() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/domba/jantan/list'),
+      headers: await authHeaders(),
+    );
+
+    final decoded = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = decoded['data'];
+
+      if (data is List) {
+        return data.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+
+      return [];
+    }
+
+    throw Exception(decoded['message'] ?? 'Gagal mengambil data jantan');
+  }
+
+  static Future<Map<String, dynamic>> fetchDombaStatistik() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/domba/statistik'),
+      headers: await authHeaders(),
+    );
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return Map<String, dynamic>.from(decoded['data'] ?? {});
+    }
+
+    throw Exception(decoded['message'] ?? 'Gagal mengambil statistik domba');
+  }
 }
