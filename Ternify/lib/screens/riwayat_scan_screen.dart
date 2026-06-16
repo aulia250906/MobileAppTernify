@@ -15,6 +15,12 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
   static const Color beigeLight = Color(0xFFFAF7F2);
   static const Color textMuted = Color(0xFF8A9BB0);
 
+  // Pre-computed opacity colors
+  static const Color _whiteOpacity55 = Color(0x8CFFFFFF);
+  static const Color _whiteOpacity10 = Color(0x1AFFFFFF);
+  static const Color _blackOpacity04 = Color(0x0A000000);
+  static const Color _navyOpacity20 = Color(0x331A2B45);
+
   final List<Map<String, dynamic>> _allItems = [
     {
       'icon': Icons.description_outlined,
@@ -140,7 +146,7 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
                     const SizedBox(height: 2),
                     Text(
                       '142 total scan',
-                      style: TextStyle(fontSize: 12.5, color: Colors.white.withOpacity(0.55)),
+                      style: TextStyle(fontSize: 12.5, color: _whiteOpacity55),
                     ),
                   ],
                 ),
@@ -157,7 +163,7 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
     return Container(
       width: 38, height: 38,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: _whiteOpacity10,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Stack(
@@ -182,8 +188,8 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFDDD8CE)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2)),
+        boxShadow: const [
+          BoxShadow(color: _blackOpacity04, blurRadius: 6, offset: Offset(0, 2)),
         ],
       ),
       child: TextField(
@@ -229,8 +235,8 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
                 border: Border.all(
                   color: isActive ? navyDark : const Color(0xFFDDD8CE),
                 ),
-                boxShadow: isActive ? [
-                  BoxShadow(color: navyDark.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2)),
+                boxShadow: isActive ? const [
+                  BoxShadow(color: _navyOpacity20, blurRadius: 4, offset: Offset(0, 2)),
                 ] : [],
               ),
               child: Row(
@@ -267,8 +273,8 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 1)),
+        boxShadow: const [
+          BoxShadow(color: _blackOpacity04, blurRadius: 6, offset: Offset(0, 1)),
         ],
       ),
       child: Row(

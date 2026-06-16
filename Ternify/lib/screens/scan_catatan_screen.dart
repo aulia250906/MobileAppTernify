@@ -24,6 +24,14 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
   static const Color textMuted = Color(0xFF8A9BB0);
   static const Color cardWhite = Colors.white;
 
+  // Pre-computed opacity colors
+  static const Color _whiteOpacity55 = Color(0x8CFFFFFF);
+  static const Color _whiteOpacity10 = Color(0x1AFFFFFF);
+  static const Color _whiteOpacity12 = Color(0x1FFFFFFF);
+  static const Color _whiteOpacity60 = Color(0x99FFFFFF);
+  static const Color _blackOpacity05 = Color(0x0D000000);
+  static const Color _greenOpacity30 = Color(0x4D4CAF50);
+
   final ImagePicker _picker = ImagePicker();
 
   final List<Map<String, dynamic>> _ocrItems = [
@@ -276,7 +284,7 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
                     const SizedBox(height: 2),
                     Text(
                       'Upload foto catatan',
-                      style: TextStyle(fontSize: 12.5, color: Colors.white.withOpacity(0.55)),
+                      style: TextStyle(fontSize: 12.5, color: _whiteOpacity55),
                     ),
                   ],
                 ),
@@ -293,7 +301,7 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
     return Container(
       width: 38, height: 38,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: _whiteOpacity10,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Stack(
@@ -331,7 +339,7 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
             Container(
               width: 56, height: 56,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.6),
+                color: _whiteOpacity60,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.camera_alt_outlined, size: 28, color: Color(0xFF6B7A8D)),
@@ -414,7 +422,7 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
+                border: Border.all(color: _greenOpacity30),
               ),
               child: const Text(
                 'Confidence: 87%',
@@ -443,7 +451,7 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
                 children: ['CATATAN', 'BERAT', 'DOMBA'].map((tag) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
+                    color: _whiteOpacity12,
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(tag,
@@ -469,7 +477,7 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.12),
+                          color: _whiteOpacity12,
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text(item['berat'],
@@ -509,7 +517,7 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
           decoration: highlight ? BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
+            color: _whiteOpacity12,
             borderRadius: BorderRadius.circular(5),
           ) : null,
           child: Text(label,
@@ -519,7 +527,7 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
+            color: _whiteOpacity12,
             borderRadius: BorderRadius.circular(5),
           ),
           child: Text(value,
@@ -537,8 +545,8 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
       decoration: BoxDecoration(
         color: cardWhite,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
+        boxShadow: const [
+          BoxShadow(color: _blackOpacity05, blurRadius: 8, offset: Offset(0, 2)),
         ],
       ),
       child: Column(

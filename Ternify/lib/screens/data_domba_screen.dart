@@ -19,6 +19,12 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
   static const Color beigeLight = Color(0xFFFAF7F2);
   static const Color textMuted  = Color(0xFF8A9BB0);
 
+  // Pre-computed opacity colors
+  static const Color _whiteOpacity55 = Color(0x8CFFFFFF);
+  static const Color _whiteOpacity10 = Color(0x1AFFFFFF);
+  static const Color _blackOpacity04 = Color(0x0A000000);
+  static const Color _blackOpacity05 = Color(0x0D000000);
+
   final DombaRepository _repo     = DombaRepository();
   final TextEditingController _searchCtrl = TextEditingController();
 
@@ -197,11 +203,11 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
+                                  boxShadow: const [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.04),
+                                      color: _blackOpacity04,
                                       blurRadius: 8,
-                                      offset: const Offset(0, 2),
+                                      offset: Offset(0, 2),
                                     ),
                                   ],
                                 ),
@@ -271,7 +277,7 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
                     width: 36, height: 36,
                     margin: const EdgeInsets.only(right: 10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: _whiteOpacity10,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.arrow_back_ios_new,
@@ -293,14 +299,14 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
                     Text('$_total ekor terdaftar',
                         style: TextStyle(
                             fontSize: 12.5,
-                            color: Colors.white.withOpacity(0.55))),
+                            color: _whiteOpacity55)),
                   ],
                 ),
               ),
               Container(
                 width: 38, height: 38,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: _whiteOpacity10,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Stack(
@@ -332,11 +338,11 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFDDD8CE)),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: _blackOpacity04,
               blurRadius: 6,
-              offset: const Offset(0, 2)),
+              offset: Offset(0, 2)),
         ],
       ),
       child: TextField(
@@ -393,11 +399,11 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
                 border: isActive
                     ? Border(bottom: BorderSide(color: c['color'] as Color, width: 3))
                     : null,
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: _blackOpacity05,
                       blurRadius: 8,
-                      offset: const Offset(0, 2)),
+                      offset: Offset(0, 2)),
                 ],
               ),
               child: Column(
@@ -1202,11 +1208,11 @@ class _DombaFormModalState extends State<_DombaFormModal>
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderClr),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Color(0x08000000),
             blurRadius: 6,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -1301,16 +1307,16 @@ class _DombaFormModalState extends State<_DombaFormModal>
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
                 ]
-              : [
+              : const [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Color(0x08000000),
                     blurRadius: 6,
-                    offset: const Offset(0, 2),
+                    offset: Offset(0, 2),
                   ),
                 ],
         ),
@@ -1320,7 +1326,7 @@ class _DombaFormModalState extends State<_DombaFormModal>
               duration: const Duration(milliseconds: 250),
               width: 44, height: 44,
               decoration: BoxDecoration(
-                color: isSelected ? color.withOpacity(0.15) : const Color(0xFFF5F5F5),
+                color: isSelected ? color.withValues(alpha: 0.15) : const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -1365,11 +1371,11 @@ class _DombaFormModalState extends State<_DombaFormModal>
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: borderClr),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Color(0x08000000),
               blurRadius: 6,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -1439,11 +1445,11 @@ class _DombaFormModalState extends State<_DombaFormModal>
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderClr),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Color(0x08000000),
             blurRadius: 6,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),

@@ -18,6 +18,13 @@ class _KandangScreenState extends State<KandangScreen> {
   static const Color cardWhite  = Colors.white;
   static const Color redAccent  = Color(0xFFD94F4F);
 
+  // Pre-computed opacity colors
+  static const Color _whiteOpacity55 = Color(0x8CFFFFFF);
+  static const Color _whiteOpacity10 = Color(0x1AFFFFFF);
+  static const Color _whiteOpacity60 = Color(0x99FFFFFF);
+  static const Color _blackOpacity05 = Color(0x0D000000);
+  static const Color _blackOpacity06 = Color(0x0F000000);
+
   final KandangRepository _repo = KandangRepository();
 
   List<Kandang> _kandangList    = [];
@@ -132,9 +139,9 @@ class _KandangScreenState extends State<KandangScreen> {
                         )),
                     const SizedBox(height: 2),
                     Text('$total kandang aktif',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 12.5,
-                            color: Colors.white.withOpacity(0.55))),
+                            color: _whiteOpacity55)),
                   ],
                 ),
               ),
@@ -150,7 +157,7 @@ class _KandangScreenState extends State<KandangScreen> {
     return Container(
       width: 38, height: 38,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: _whiteOpacity10,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Stack(
@@ -195,11 +202,11 @@ class _KandangScreenState extends State<KandangScreen> {
               border: isFirst
                   ? const Border(bottom: BorderSide(color: navyDark, width: 3))
                   : null,
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: _blackOpacity05,
                     blurRadius: 8,
-                    offset: const Offset(0, 2)),
+                    offset: Offset(0, 2)),
               ],
             ),
             child: Column(
@@ -229,11 +236,11 @@ class _KandangScreenState extends State<KandangScreen> {
       decoration: BoxDecoration(
         color: cardWhite,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: _blackOpacity06,
               blurRadius: 10,
-              offset: const Offset(0, 3)),
+              offset: Offset(0, 3)),
         ],
       ),
       child: Column(
@@ -264,7 +271,7 @@ class _KandangScreenState extends State<KandangScreen> {
                 Text(
                   '${k.idKandang} · ${k.tipeKandang ?? '-'}',
                   style: TextStyle(
-                      fontSize: 12, color: Colors.white.withOpacity(0.55)),
+                      fontSize: 12, color: _whiteOpacity55),
                 ),
               ],
             ),
@@ -400,7 +407,7 @@ class _KandangScreenState extends State<KandangScreen> {
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.6),
+                color: _whiteOpacity60,
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.add, color: navyDark, size: 20),

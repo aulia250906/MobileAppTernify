@@ -37,6 +37,8 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color _whiteOpacity03 = Color(0x08FFFFFF);
   static const Color _whiteOpacity04 = Color(0x0AFFFFFF);
   static const Color _whiteOpacity60 = Color(0x99FFFFFF);
+  static const Color _navyOpacity60 = Color(0x991A2B45);
+  static const Color _blackOpacity03 = Color(0x08000000);
 
   @override
   void dispose() {
@@ -465,15 +467,10 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () {
               // TODO: Implement Google Sign-In
             },
-            icon: Image.network(
-              'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-              width: 20,
-              height: 20,
-              errorBuilder: (context, error, stackTrace) => const Icon(
-                Icons.g_mobiledata_rounded,
-                size: 24,
-                color: Color(0xFF1A2B45),
-              ),
+            icon: const Icon(
+              Icons.g_mobiledata_rounded,
+              size: 24,
+              color: Color(0xFF1A2B45),
             ),
             label: const Text(
               'Daftar dengan Google',
@@ -530,7 +527,7 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: navyDark,
           foregroundColor: Colors.white,
           elevation: 0,
-          disabledBackgroundColor: navyDark.withOpacity(0.6),
+          disabledBackgroundColor: _navyOpacity60,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: isLoading
@@ -576,8 +573,8 @@ class _LoginScreenState extends State<LoginScreen> {
               color: hasError ? const Color(0xFFC0392B) : const Color(0xFFDDD8CE),
               width: hasError ? 1.5 : 1,
             ),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 1)),
+            boxShadow: const [
+              BoxShadow(color: _blackOpacity03, blurRadius: 4, offset: Offset(0, 1)),
             ],
           ),
           child: TextField(
