@@ -12,10 +12,7 @@ class DombaRepository {
   // 3. Simpan server ke SQLite
   // 4. Tampilkan dari SQLite
   // ─────────────────────────────────────────────
-  Future<List<Domba>> fetchDomba({
-    String? search,
-    String? jenisKelamin,
-  }) async {
+  Future<List<Domba>> fetchDomba({String? search, String? jenisKelamin}) async {
     try {
       await syncPendingDomba();
 
@@ -56,10 +53,7 @@ class DombaRepository {
       final serverId = data['id_domba']?.toString();
 
       if (serverId != null && serverId.isNotEmpty) {
-        await _localDb.markDombaAsSynced(
-          localId: localId,
-          serverId: serverId,
-        );
+        await _localDb.markDombaAsSynced(localId: localId, serverId: serverId);
       }
     } catch (_) {
       // Data tetap pending di SQLite.
@@ -72,16 +66,10 @@ class DombaRepository {
   // Untuk tahap awal: update langsung ke server, lalu refresh lokal.
   // Offline update bisa kita sempurnakan setelah create offline berhasil.
   // ─────────────────────────────────────────────
-  Future<void> updateDomba(
-    String idDomba,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<void> updateDomba(String idDomba, Map<String, dynamic> payload) async {
     await ApiService.updateDomba(idDomba, payload);
 
-    await _localDb.upsertDombaFromServer({
-      ...payload,
-      'id_domba': idDomba,
-    });
+    await _localDb.upsertDombaFromServer({...payload, 'id_domba': idDomba});
   }
 
   // ─────────────────────────────────────────────
@@ -139,18 +127,18 @@ class DombaRepository {
       final localData = await _localDb.getLocalDomba();
 
       final total = localData.length;
-      final totalJantan = localData.where((e) => e['jenis_kelamin'] == 'jantan').length;
-      final totalBetina = localData.where((e) => e['jenis_kelamin'] == 'betina').length;
+      final totalJantan = localData
+          .where((e) => e['jenis_kelamin'] == 'jantan')
+          .length;
+      final totalBetina = localData
+          .where((e) => e['jenis_kelamin'] == 'betina')
+          .length;
 
       return {
         'total_domba': total,
         'total_jantan': totalJantan,
         'total_betina': totalBetina,
-        'status': {
-          'sehat': total,
-          'bunting': 0,
-          'sakit': 0,
-        },
+        'status': {'sehat': total, 'bunting': 0, 'sakit': 0},
         'domba_terbaru': localData.take(5).map((e) {
           return {
             'id_domba': e['server_id'] ?? '',
@@ -171,48 +159,50 @@ class DombaRepository {
   // ─────────────────────────────────────────────
   // SYNC PENDING
   // ─────────────────────────────────────────────
-Future<void> syncPendingDomba() async {
-  final pending = await _localDb.getPendingDomba();
+  Future<void> syncPendingDomba() async {
+    final pending = await _localDb.getPendingDomba();
 
-  print('[SYNC DOMBA] Jumlah pending: ${pending.length}');
+    print('[SYNC DOMBA] Jumlah pending: ${pending.length}');
 
-  for (final item in pending) {
-    final localId = item['local_id'] as int;
+    for (final item in pending) {
+      final localId = item['local_id'] as int;
 
-    final payload = {
-      'ear_tag': item['ear_tag'],
-      'id_bangsa': item['id_bangsa'],
-      'jenis_kelamin': item['jenis_kelamin'],
-      'tanggal_lahir': item['tanggal_lahir'],
-      'id_induk': item['id_induk'],
-      'id_pejantan': item['id_pejantan'],
-    };
+      final payload = {
+        'ear_tag': item['ear_tag'],
+        'id_bangsa': item['id_bangsa'],
+        'jenis_kelamin': item['jenis_kelamin'],
+        'tanggal_lahir': item['tanggal_lahir'],
+        'id_induk': item['id_induk'],
+        'id_pejantan': item['id_pejantan'],
+      };
 
-    print('[SYNC DOMBA] Kirim local_id=$localId payload=$payload');
+      print('[SYNC DOMBA] Kirim local_id=$localId payload=$payload');
 
-    try {
-      final result = await ApiService.createDomba(payload);
+      try {
+        final result = await ApiService.createDomba(payload);
 
-      print('[SYNC DOMBA] Response server: $result');
+        print('[SYNC DOMBA] Response server: $result');
 
-      final data = Map<String, dynamic>.from(result['data'] ?? {});
-      final serverId = data['id_domba']?.toString();
+        final data = Map<String, dynamic>.from(result['data'] ?? {});
+        final serverId = data['id_domba']?.toString();
 
-      if (serverId != null && serverId.isNotEmpty) {
-        await _localDb.markDombaAsSynced(
-          localId: localId,
-          serverId: serverId,
-        );
+        if (serverId != null && serverId.isNotEmpty) {
+          await _localDb.markDombaAsSynced(
+            localId: localId,
+            serverId: serverId,
+          );
 
-        print('[SYNC DOMBA] Berhasil sync local_id=$localId server_id=$serverId');
-      } else {
-        print('[SYNC DOMBA] Gagal: id_domba kosong dari server');
+          print(
+            '[SYNC DOMBA] Berhasil sync local_id=$localId server_id=$serverId',
+          );
+        } else {
+          print('[SYNC DOMBA] Gagal: id_domba kosong dari server');
+        }
+      } catch (e) {
+        print('[SYNC DOMBA] Gagal sync local_id=$localId: $e');
       }
-    } catch (e) {
-      print('[SYNC DOMBA] Gagal sync local_id=$localId: $e');
     }
   }
-}
 
   Domba _mapLocalToDomba(Map<String, dynamic> map) {
     return Domba(

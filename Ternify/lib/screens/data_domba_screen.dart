@@ -15,17 +15,23 @@ class DataDombaScreen extends StatefulWidget {
 }
 
 class _DataDombaScreenState extends State<DataDombaScreen> {
-  static const Color navyDark   = Color(0xFF1A2B45);
+  static const Color navyDark = Color(0xFF1A2B45);
   static const Color beigeLight = Color(0xFFFAF7F2);
-  static const Color textMuted  = Color(0xFF8A9BB0);
+  static const Color textMuted = Color(0xFF8A9BB0);
 
-  final DombaRepository _repo     = DombaRepository();
+  // Pre-computed opacity colors
+  static const Color _whiteOpacity55 = Color(0x8CFFFFFF);
+  static const Color _whiteOpacity10 = Color(0x1AFFFFFF);
+  static const Color _blackOpacity04 = Color(0x0A000000);
+  static const Color _blackOpacity05 = Color(0x0D000000);
+
+  final DombaRepository _repo = DombaRepository();
   final TextEditingController _searchCtrl = TextEditingController();
 
-  List<Domba> _dombas      = [];
-  bool _isLoading          = false;
+  List<Domba> _dombas = [];
+  bool _isLoading = false;
   String? _errorMessage;
-  String _activeFilter     = 'Semua';
+  String _activeFilter = 'Semua';
 
   @override
   void initState() {
@@ -34,7 +40,10 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
   }
 
   Future<void> _loadAll() async {
-    setState(() { _isLoading = true; _errorMessage = null; });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
       String? jenisKelamin;
       if (_activeFilter == 'Jantan') jenisKelamin = 'jantan';
@@ -56,9 +65,9 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
   }
 
   // ── computed ────────────────────────────────────────────────────────────────
-  int get _total   => _dombas.length;
-  int get _jantan  => _dombas.where((d) => d.jenisKelamin == 'jantan').length;
-  int get _betina  => _dombas.where((d) => d.jenisKelamin == 'betina').length;
+  int get _total => _dombas.length;
+  int get _jantan => _dombas.where((d) => d.jenisKelamin == 'jantan').length;
+  int get _betina => _dombas.where((d) => d.jenisKelamin == 'betina').length;
 
   List<Domba> get _filtered {
     final q = _searchCtrl.text.toLowerCase();
@@ -66,10 +75,13 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
 
     // Filter lokal berdasarkan pencarian
     if (q.isNotEmpty) {
-      list = list.where((d) =>
-        d.earTag.toLowerCase().contains(q) ||
-        (d.idBangsa?.toLowerCase().contains(q) ?? false)
-      ).toList();
+      list = list
+          .where(
+            (d) =>
+                d.earTag.toLowerCase().contains(q) ||
+                (d.idBangsa?.toLowerCase().contains(q) ?? false),
+          )
+          .toList();
     }
 
     return list;
@@ -77,15 +89,11 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
 
   // ── color helpers ───────────────────────────────────────────────────────────
   Color _genderColor(String jk) {
-    return jk == 'jantan'
-        ? const Color(0xFF2196F3)
-        : const Color(0xFFE91E63);
+    return jk == 'jantan' ? const Color(0xFF2196F3) : const Color(0xFFE91E63);
   }
 
   Color _genderBg(String jk) {
-    return jk == 'jantan'
-        ? const Color(0xFFE3F2FD)
-        : const Color(0xFFFCE4EC);
+    return jk == 'jantan' ? const Color(0xFFE3F2FD) : const Color(0xFFFCE4EC);
   }
 
   // ── navigasi ke form (pop-up modal) ─────────────────────────────────────────
@@ -132,11 +140,7 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
         }
       } catch (e) {
         if (mounted) {
-          AppPopup.show(
-            context,
-            message: e.toString(),
-            isError: true,
-          );
+          AppPopup.show(context, message: e.toString(), isError: true);
         }
       }
     }
@@ -152,8 +156,10 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
 
     final activeLabel = _activeFilter == 'Semua'
         ? 'Semua ($_total)'
-        : filters.firstWhere((f) => f.startsWith(_activeFilter),
-            orElse: () => _activeFilter);
+        : filters.firstWhere(
+            (f) => f.startsWith(_activeFilter),
+            orElse: () => _activeFilter,
+          );
 
     final items = _filtered;
 
@@ -180,49 +186,56 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _errorMessage != null
-                      ? _buildError()
-                      : ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                          children: [
-                            if (items.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 40),
-                                child: Center(
-                                  child: Text('Tidak ada data domba.',
-                                      style: TextStyle(color: textMuted)),
-                                ),
-                              )
-                            else
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.04),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  children: items.asMap().entries.map((e) {
-                                    return _buildDombaItem(e.value,
-                                        isLast: e.key == items.length - 1);
-                                  }).toList(),
-                                ),
-                              ),
-                            const SizedBox(height: 12),
-                            Center(
+                  ? _buildError()
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                      children: [
+                        if (items.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40),
+                            child: Center(
                               child: Text(
-                                'Menampilkan ${items.length} domba',
-                                style: const TextStyle(fontSize: 12, color: textMuted),
+                                'Tidak ada data domba.',
+                                style: TextStyle(color: textMuted),
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            _buildTambahButton(),
-                          ],
+                          )
+                        else
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: _blackOpacity04,
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: items.asMap().entries.map((e) {
+                                return _buildDombaItem(
+                                  e.value,
+                                  isLast: e.key == items.length - 1,
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: Text(
+                            'Menampilkan ${items.length} domba',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: textMuted,
+                            ),
+                          ),
                         ),
+                        const SizedBox(height: 16),
+                        _buildTambahButton(),
+                      ],
+                    ),
             ),
           ],
         ),
@@ -239,8 +252,11 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(_errorMessage!, textAlign: TextAlign.center,
-                style: const TextStyle(color: textMuted)),
+            child: Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: textMuted),
+            ),
           ),
           const SizedBox(height: 12),
           ElevatedButton(onPressed: _loadAll, child: const Text('Coba Lagi')),
@@ -268,52 +284,66 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
-                    width: 36, height: 36,
+                    width: 36,
+                    height: 36,
                     margin: const EdgeInsets.only(right: 10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: _whiteOpacity10,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.arrow_back_ios_new,
-                        color: Colors.white70, size: 16),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
                   ),
                 ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Data Domba',
-                        style: TextStyle(
-                          fontFamily: 'Georgia',
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        )),
+                    const Text(
+                      'Data Domba',
+                      style: TextStyle(
+                        fontFamily: 'Georgia',
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text('$_total ekor terdaftar',
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            color: Colors.white.withOpacity(0.55))),
+                    Text(
+                      '$_total ekor terdaftar',
+                      style: TextStyle(fontSize: 12.5, color: _whiteOpacity55),
+                    ),
                   ],
                 ),
               ),
               Container(
-                width: 38, height: 38,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: _whiteOpacity10,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    const Icon(Icons.notifications_outlined,
-                        color: Colors.white70, size: 20),
+                    const Icon(
+                      Icons.notifications_outlined,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
                     Positioned(
-                      top: 7, right: 7,
+                      top: 7,
+                      right: 7,
                       child: Container(
-                        width: 7, height: 7,
+                        width: 7,
+                        height: 7,
                         decoration: const BoxDecoration(
-                            color: Color(0xFFFF6B6B), shape: BoxShape.circle),
+                          color: Color(0xFFFF6B6B),
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
                   ],
@@ -332,11 +362,12 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFDDD8CE)),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2)),
+            color: _blackOpacity04,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
         ],
       ),
       child: TextField(
@@ -365,9 +396,27 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
 
   Widget _buildSummaryCards() {
     final cards = [
-      {'label': 'Total',   'value': '$_total',   'icon': Icons.pets, 'color': const Color(0xFF1A2B45), 'active': _activeFilter == 'Semua'},
-      {'label': 'Jantan',  'value': '$_jantan',  'icon': Icons.male, 'color': const Color(0xFF2196F3), 'active': _activeFilter == 'Jantan'},
-      {'label': 'Betina',  'value': '$_betina',  'icon': Icons.female, 'color': const Color(0xFFE91E63), 'active': _activeFilter == 'Betina'},
+      {
+        'label': 'Total',
+        'value': '$_total',
+        'icon': Icons.pets,
+        'color': const Color(0xFF1A2B45),
+        'active': _activeFilter == 'Semua',
+      },
+      {
+        'label': 'Jantan',
+        'value': '$_jantan',
+        'icon': Icons.male,
+        'color': const Color(0xFF2196F3),
+        'active': _activeFilter == 'Jantan',
+      },
+      {
+        'label': 'Betina',
+        'value': '$_betina',
+        'icon': Icons.female,
+        'color': const Color(0xFFE91E63),
+        'active': _activeFilter == 'Betina',
+      },
     ];
 
     return SizedBox(
@@ -391,13 +440,19 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: isActive
-                    ? Border(bottom: BorderSide(color: c['color'] as Color, width: 3))
+                    ? Border(
+                        bottom: BorderSide(
+                          color: c['color'] as Color,
+                          width: 3,
+                        ),
+                      )
                     : null,
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2)),
+                    color: _blackOpacity05,
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
                 ],
               ),
               child: Column(
@@ -405,20 +460,28 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(c['value'] as String,
-                          style: const TextStyle(
-                            fontFamily: 'Georgia',
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: navyDark,
-                          )),
+                      Text(
+                        c['value'] as String,
+                        style: const TextStyle(
+                          fontFamily: 'Georgia',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: navyDark,
+                        ),
+                      ),
                       const Spacer(),
-                      Icon(c['icon'] as IconData, size: 16, color: c['color'] as Color),
+                      Icon(
+                        c['icon'] as IconData,
+                        size: 16,
+                        color: c['color'] as Color,
+                      ),
                     ],
                   ),
                   const Spacer(),
-                  Text(c['label'] as String,
-                      style: const TextStyle(fontSize: 11.5, color: textMuted)),
+                  Text(
+                    c['label'] as String,
+                    style: const TextStyle(fontSize: 11.5, color: textMuted),
+                  ),
                 ],
               ),
             ),
@@ -437,8 +500,9 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
         itemCount: filters.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
-          final label   = filters[i];
-          final isActive = label == activeLabel || (i == 0 && _activeFilter == 'Semua');
+          final label = filters[i];
+          final isActive =
+              label == activeLabel || (i == 0 && _activeFilter == 'Semua');
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -452,14 +516,17 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
                 color: isActive ? navyDark : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: isActive ? navyDark : const Color(0xFFDDD8CE)),
+                  color: isActive ? navyDark : const Color(0xFFDDD8CE),
+                ),
               ),
-              child: Text(label,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                    color: isActive ? Colors.white : textMuted,
-                  )),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  color: isActive ? Colors.white : textMuted,
+                ),
+              ),
             ),
           );
         },
@@ -475,19 +542,23 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
         decoration: BoxDecoration(
           border: isLast
               ? null
-              : const Border(bottom: BorderSide(color: Color(0xFFF0EDE6), width: 1)),
+              : const Border(
+                  bottom: BorderSide(color: Color(0xFFF0EDE6), width: 1),
+                ),
         ),
         child: Row(
           children: [
             Container(
-              width: 40, height: 40,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: _genderBg(d.jenisKelamin),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 d.jenisKelamin == 'jantan' ? Icons.male : Icons.female,
-                size: 20, color: _genderColor(d.jenisKelamin),
+                size: 20,
+                color: _genderColor(d.jenisKelamin),
               ),
             ),
             const SizedBox(width: 12),
@@ -495,12 +566,14 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(d.earTag,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: navyDark,
-                      )),
+                  Text(
+                    d.earTag,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: navyDark,
+                    ),
+                  ),
                   const SizedBox(height: 3),
                   Text(
                     '${d.idBangsa ?? '-'} · ${d.jenisKelaminLabel} · ${d.umur}',
@@ -515,12 +588,14 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
                 color: _genderBg(d.jenisKelamin),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(d.jenisKelaminLabel,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: _genderColor(d.jenisKelamin),
-                  )),
+              child: Text(
+                d.jenisKelaminLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _genderColor(d.jenisKelamin),
+                ),
+              ),
             ),
             const SizedBox(width: 6),
             Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade300),
@@ -537,13 +612,17 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
       child: ElevatedButton.icon(
         onPressed: () => _openForm(),
         icon: const Icon(Icons.add, size: 18),
-        label: const Text('Tambah Domba',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        label: const Text(
+          'Tambah Domba',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: navyDark,
           foregroundColor: Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
@@ -580,7 +659,7 @@ class _DetailDombaModal extends StatelessWidget {
   final Color Function(String) genderColor;
   final Color Function(String) genderBg;
 
-  static const Color navyDark  = Color(0xFF1A2B45);
+  static const Color navyDark = Color(0xFF1A2B45);
   static const Color textMuted = Color(0xFF8A9BB0);
 
   const _DetailDombaModal({
@@ -602,7 +681,8 @@ class _DetailDombaModal extends StatelessWidget {
         ),
       ),
       padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -611,11 +691,13 @@ class _DetailDombaModal extends StatelessWidget {
             // Handle
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(top: 12, bottom: 16),
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2)),
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             // Header
@@ -623,21 +705,25 @@ class _DetailDombaModal extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  const Text('Detail Domba',
-                      style: TextStyle(
-                        fontFamily: 'Georgia',
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: navyDark,
-                      )),
+                  const Text(
+                    'Detail Domba',
+                    style: TextStyle(
+                      fontFamily: 'Georgia',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: navyDark,
+                    ),
+                  ),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
-                      width: 32, height: 32,
+                      width: 32,
+                      height: 32,
                       decoration: BoxDecoration(
-                          color: const Color(0xFFEAE4D8),
-                          borderRadius: BorderRadius.circular(8)),
+                        color: const Color(0xFFEAE4D8),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: const Icon(Icons.close, size: 16, color: navyDark),
                     ),
                   ),
@@ -651,18 +737,24 @@ class _DetailDombaModal extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                    color: const Color(0xFFF5EFE4),
-                    borderRadius: BorderRadius.circular(12)),
+                  color: const Color(0xFFF5EFE4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Row(
                   children: [
                     Container(
-                      width: 52, height: 52,
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
-                          color: genderBg(domba.jenisKelamin),
-                          borderRadius: BorderRadius.circular(12)),
+                        color: genderBg(domba.jenisKelamin),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Icon(
-                        domba.jenisKelamin == 'jantan' ? Icons.male : Icons.female,
-                        size: 28, color: genderColor(domba.jenisKelamin),
+                        domba.jenisKelamin == 'jantan'
+                            ? Icons.male
+                            : Icons.female,
+                        size: 28,
+                        color: genderColor(domba.jenisKelamin),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -670,30 +762,41 @@ class _DetailDombaModal extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(domba.earTag,
-                              style: const TextStyle(
-                                fontFamily: 'Georgia',
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: navyDark,
-                              )),
+                          Text(
+                            domba.earTag,
+                            style: const TextStyle(
+                              fontFamily: 'Georgia',
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: navyDark,
+                            ),
+                          ),
                           const SizedBox(height: 2),
-                          Text('${domba.idBangsa ?? '-'} · ${domba.jenisKelaminLabel}',
-                              style: const TextStyle(
-                                  fontSize: 12.5, color: textMuted)),
+                          Text(
+                            '${domba.idBangsa ?? '-'} · ${domba.jenisKelaminLabel}',
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: textMuted,
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 9, vertical: 3),
+                              horizontal: 9,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                                color: genderBg(domba.jenisKelamin),
-                                borderRadius: BorderRadius.circular(6)),
-                            child: Text(domba.jenisKelaminLabel,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: genderColor(domba.jenisKelamin),
-                                )),
+                              color: genderBg(domba.jenisKelamin),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              domba.jenisKelaminLabel,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: genderColor(domba.jenisKelamin),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -712,7 +815,12 @@ class _DetailDombaModal extends StatelessWidget {
                     children: [
                       Expanded(child: _infoBox('UMUR', domba.umur)),
                       const SizedBox(width: 10),
-                      Expanded(child: _infoBox('TANGGAL LAHIR', domba.tanggalLahir ?? '-')),
+                      Expanded(
+                        child: _infoBox(
+                          'TANGGAL LAHIR',
+                          domba.tanggalLahir ?? '-',
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -742,7 +850,8 @@ class _DetailDombaModal extends StatelessWidget {
                         foregroundColor: Colors.red,
                         side: const BorderSide(color: Colors.red, width: 1.5),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         padding: EdgeInsets.zero,
                       ),
                       child: const Icon(Icons.delete_outline, size: 20),
@@ -755,14 +864,21 @@ class _DetailDombaModal extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: navyDark,
                         side: const BorderSide(
-                            color: Color(0xFFBFB8A8), width: 1.5),
+                          color: Color(0xFFBFB8A8),
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
-                      child: const Text('Tutup',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500)),
+                      child: const Text(
+                        'Tutup',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -774,12 +890,17 @@ class _DetailDombaModal extends StatelessWidget {
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
-                      child: const Text('Edit',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600)),
+                      child: const Text(
+                        'Edit',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -802,21 +923,25 @@ class _DetailDombaModal extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.0,
-                color: Color(0xFF8A9BB0),
-              )),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+              color: Color(0xFF8A9BB0),
+            ),
+          ),
           const SizedBox(height: 5),
-          Text(value,
-              style: const TextStyle(
-                fontFamily: 'Georgia',
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: navyDark,
-              )),
+          Text(
+            value,
+            style: const TextStyle(
+              fontFamily: 'Georgia',
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: navyDark,
+            ),
+          ),
         ],
       ),
     );
@@ -836,27 +961,27 @@ class _DombaFormModal extends StatefulWidget {
 
 class _DombaFormModalState extends State<_DombaFormModal>
     with SingleTickerProviderStateMixin {
-  static const Color navyDark   = Color(0xFF1A2B45);
+  static const Color navyDark = Color(0xFF1A2B45);
   static const Color beigeLight = Color(0xFFFAF7F2);
-  static const Color textMuted  = Color(0xFF8A9BB0);
-  static const Color cardBg     = Color(0xFFF5EFE4);
-  static const Color borderClr  = Color(0xFFEAE4D8);
+  static const Color textMuted = Color(0xFF8A9BB0);
+  static const Color cardBg = Color(0xFFF5EFE4);
+  static const Color borderClr = Color(0xFFEAE4D8);
   static const Color accentGold = Color(0xFFC9A96E);
 
-  final _formKey       = GlobalKey<FormState>();
-  final _repo          = DombaRepository();
-  final _earTagCtrl    = TextEditingController();
-  final _bangsaCtrl    = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _repo = DombaRepository();
+  final _earTagCtrl = TextEditingController();
+  final _bangsaCtrl = TextEditingController();
 
   String? _jenisKelamin;
   DateTime? _tanggalLahir;
   String? _idInduk;
   String? _idPejantan;
 
-  List<Domba> _listBetina  = [];
-  List<Domba> _listJantan  = [];
-  bool _isSaving           = false;
-  bool _isLoadingDropdown  = false;
+  List<Domba> _listBetina = [];
+  List<Domba> _listJantan = [];
+  bool _isSaving = false;
+  bool _isLoadingDropdown = false;
 
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
@@ -879,11 +1004,11 @@ class _DombaFormModalState extends State<_DombaFormModal>
 
   void _prefill() {
     final d = widget.domba!;
-    _earTagCtrl.text    = d.earTag;
-    _bangsaCtrl.text    = d.idBangsa ?? '';
-    _jenisKelamin       = d.jenisKelamin;
-    _idInduk            = d.idInduk;
-    _idPejantan         = d.idPejantan;
+    _earTagCtrl.text = d.earTag;
+    _bangsaCtrl.text = d.idBangsa ?? '';
+    _jenisKelamin = d.jenisKelamin;
+    _idInduk = d.idInduk;
+    _idPejantan = d.idPejantan;
     if (d.tanggalLahir != null) {
       _tanggalLahir = DateTime.tryParse(d.tanggalLahir!);
     }
@@ -900,8 +1025,10 @@ class _DombaFormModalState extends State<_DombaFormModal>
         _listBetina = results[0];
         _listJantan = results[1];
       });
-    } catch (_) {}
-    finally { setState(() => _isLoadingDropdown = false); }
+    } catch (_) {
+    } finally {
+      setState(() => _isLoadingDropdown = false);
+    }
   }
 
   Future<void> _pickTanggal() async {
@@ -932,14 +1059,16 @@ class _DombaFormModalState extends State<_DombaFormModal>
     setState(() => _isSaving = true);
 
     final payload = <String, dynamic>{
-      'ear_tag':       _earTagCtrl.text.trim(),
-      'id_bangsa':     _bangsaCtrl.text.trim().isEmpty ? null : _bangsaCtrl.text.trim(),
+      'ear_tag': _earTagCtrl.text.trim(),
+      'id_bangsa': _bangsaCtrl.text.trim().isEmpty
+          ? null
+          : _bangsaCtrl.text.trim(),
       'jenis_kelamin': _jenisKelamin,
       'tanggal_lahir': _tanggalLahir != null
           ? '${_tanggalLahir!.year}-${_tanggalLahir!.month.toString().padLeft(2, '0')}-${_tanggalLahir!.day.toString().padLeft(2, '0')}'
           : null,
-      'id_induk':      _idInduk,
-      'id_pejantan':   _idPejantan,
+      'id_induk': _idInduk,
+      'id_pejantan': _idPejantan,
     };
 
     try {
@@ -951,17 +1080,15 @@ class _DombaFormModalState extends State<_DombaFormModal>
       if (mounted) {
         AppPopup.show(
           context,
-          message: isEdit ? 'Data berhasil diperbarui.' : 'Domba berhasil ditambahkan.',
+          message: isEdit
+              ? 'Data berhasil diperbarui.'
+              : 'Domba berhasil ditambahkan.',
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        AppPopup.show(
-          context,
-          message: e.toString(),
-          isError: true,
-        );
+        AppPopup.show(context, message: e.toString(), isError: true);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -1030,8 +1157,7 @@ class _DombaFormModalState extends State<_DombaFormModal>
                     _sectionLabel('JENIS KELAMIN *'),
                     const SizedBox(height: 8),
                     _buildGenderToggle(),
-                    if (_jenisKelamin == null)
-                      const SizedBox.shrink(),
+                    if (_jenisKelamin == null) const SizedBox.shrink(),
                     const SizedBox(height: 16),
 
                     // ── Tanggal Lahir ──
@@ -1048,9 +1174,11 @@ class _DombaFormModalState extends State<_DombaFormModal>
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         child: const Center(
                           child: SizedBox(
-                            width: 24, height: 24,
+                            width: 24,
+                            height: 24,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: navyDark,
+                              strokeWidth: 2.5,
+                              color: navyDark,
                             ),
                           ),
                         ),
@@ -1062,12 +1190,21 @@ class _DombaFormModalState extends State<_DombaFormModal>
                         value: _idInduk,
                         items: [
                           const DropdownMenuItem(
-                              value: null, child: Text('— Tidak ada —')),
+                            value: null,
+                            child: Text('— Tidak ada —'),
+                          ),
                           ..._listBetina
-                              .where((d) =>
-                                  !isEdit || d.idDomba != widget.domba!.idDomba)
-                              .map((d) => DropdownMenuItem(
-                                  value: d.idDomba, child: Text(d.earTag))),
+                              .where(
+                                (d) =>
+                                    !isEdit ||
+                                    d.idDomba != widget.domba!.idDomba,
+                              )
+                              .map(
+                                (d) => DropdownMenuItem(
+                                  value: d.idDomba,
+                                  child: Text(d.earTag),
+                                ),
+                              ),
                         ],
                         onChanged: (v) => setState(() => _idInduk = v),
                       ),
@@ -1078,12 +1215,21 @@ class _DombaFormModalState extends State<_DombaFormModal>
                         value: _idPejantan,
                         items: [
                           const DropdownMenuItem(
-                              value: null, child: Text('— Tidak ada —')),
+                            value: null,
+                            child: Text('— Tidak ada —'),
+                          ),
                           ..._listJantan
-                              .where((d) =>
-                                  !isEdit || d.idDomba != widget.domba!.idDomba)
-                              .map((d) => DropdownMenuItem(
-                                  value: d.idDomba, child: Text(d.earTag))),
+                              .where(
+                                (d) =>
+                                    !isEdit ||
+                                    d.idDomba != widget.domba!.idDomba,
+                              )
+                              .map(
+                                (d) => DropdownMenuItem(
+                                  value: d.idDomba,
+                                  child: Text(d.earTag),
+                                ),
+                              ),
                         ],
                         onChanged: (v) => setState(() => _idPejantan = v),
                       ),
@@ -1107,7 +1253,8 @@ class _DombaFormModalState extends State<_DombaFormModal>
   Widget _buildHandle() {
     return Center(
       child: Container(
-        width: 40, height: 4,
+        width: 40,
+        height: 4,
         margin: const EdgeInsets.only(top: 12, bottom: 8),
         decoration: BoxDecoration(
           color: Colors.grey.shade300,
@@ -1124,7 +1271,8 @@ class _DombaFormModalState extends State<_DombaFormModal>
       child: Row(
         children: [
           Container(
-            width: 40, height: 40,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -1151,9 +1299,7 @@ class _DombaFormModalState extends State<_DombaFormModal>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  isEdit
-                      ? 'Perbarui informasi domba'
-                      : 'Isi data domba baru',
+                  isEdit ? 'Perbarui informasi domba' : 'Isi data domba baru',
                   style: const TextStyle(fontSize: 12, color: textMuted),
                 ),
               ],
@@ -1162,7 +1308,8 @@ class _DombaFormModalState extends State<_DombaFormModal>
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              width: 34, height: 34,
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(10),
@@ -1202,11 +1349,11 @@ class _DombaFormModalState extends State<_DombaFormModal>
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderClr),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Color(0x08000000),
             blurRadius: 6,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -1225,20 +1372,19 @@ class _DombaFormModalState extends State<_DombaFormModal>
             fontWeight: FontWeight.w500,
           ),
           hintText: hint,
-          hintStyle: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade400,
-          ),
+          hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
           prefixIcon: Container(
             margin: const EdgeInsets.only(left: 12, right: 8),
             child: Icon(icon, size: 18, color: accentGold),
           ),
           prefixIconConstraints: const BoxConstraints(
-            minWidth: 42, minHeight: 42,
+            minWidth: 42,
+            minHeight: 42,
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 14,
+            horizontal: 16,
+            vertical: 14,
           ),
         ),
         validator: validator,
@@ -1301,16 +1447,16 @@ class _DombaFormModalState extends State<_DombaFormModal>
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
                 ]
-              : [
+              : const [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Color(0x08000000),
                     blurRadius: 6,
-                    offset: const Offset(0, 2),
+                    offset: Offset(0, 2),
                   ),
                 ],
         ),
@@ -1318,9 +1464,12 @@ class _DombaFormModalState extends State<_DombaFormModal>
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
-              width: 44, height: 44,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: isSelected ? color.withOpacity(0.15) : const Color(0xFFF5F5F5),
+                color: isSelected
+                    ? color.withValues(alpha: 0.15)
+                    : const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -1341,7 +1490,8 @@ class _DombaFormModalState extends State<_DombaFormModal>
             if (isSelected) ...[
               const SizedBox(height: 4),
               Container(
-                width: 18, height: 3,
+                width: 18,
+                height: 3,
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: BorderRadius.circular(2),
@@ -1365,20 +1515,23 @@ class _DombaFormModalState extends State<_DombaFormModal>
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: borderClr),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Color(0x08000000),
               blurRadius: 6,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              width: 36, height: 36,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: hasDate ? const Color(0xFFE8F5E9) : const Color(0xFFF5F5F5),
+                color: hasDate
+                    ? const Color(0xFFE8F5E9)
+                    : const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -1415,11 +1568,7 @@ class _DombaFormModalState extends State<_DombaFormModal>
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: Colors.grey.shade400,
-            ),
+            Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade400),
           ],
         ),
       ),
@@ -1439,11 +1588,11 @@ class _DombaFormModalState extends State<_DombaFormModal>
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderClr),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Color(0x08000000),
             blurRadius: 6,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -1454,7 +1603,11 @@ class _DombaFormModalState extends State<_DombaFormModal>
           fontWeight: FontWeight.w500,
           color: navyDark,
         ),
-        icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400, size: 20),
+        icon: Icon(
+          Icons.keyboard_arrow_down,
+          color: Colors.grey.shade400,
+          size: 20,
+        ),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(
@@ -1467,11 +1620,13 @@ class _DombaFormModalState extends State<_DombaFormModal>
             child: Icon(icon, size: 18, color: accentGold),
           ),
           prefixIconConstraints: const BoxConstraints(
-            minWidth: 42, minHeight: 42,
+            minWidth: 42,
+            minHeight: 42,
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 14,
+            horizontal: 16,
+            vertical: 14,
           ),
         ),
         items: items,
@@ -1520,18 +1675,17 @@ class _DombaFormModalState extends State<_DombaFormModal>
             ),
             child: _isSaving
                 ? const SizedBox(
-                    height: 20, width: 20,
+                    height: 20,
+                    width: 20,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white,
+                      strokeWidth: 2,
+                      color: Colors.white,
                     ),
                   )
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        isEdit ? Icons.save_outlined : Icons.add,
-                        size: 18,
-                      ),
+                      Icon(isEdit ? Icons.save_outlined : Icons.add, size: 18),
                       const SizedBox(width: 6),
                       Text(
                         isEdit ? 'Simpan' : 'Tambah Domba',

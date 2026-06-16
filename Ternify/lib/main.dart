@@ -27,9 +27,7 @@ class TernakDigitalApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'Georgia',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E2D4A),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E2D4A)),
         useMaterial3: true,
       ),
       initialRoute: '/',

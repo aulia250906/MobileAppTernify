@@ -10,30 +10,34 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController              = TextEditingController();
-  final TextEditingController _passwordController           = TextEditingController();
-  final TextEditingController _namaController               = TextEditingController();
-  final TextEditingController _emailDaftarController        = TextEditingController();
-  final TextEditingController _passwordDaftarController     = TextEditingController();
-  final TextEditingController _konfirmasiPasswordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _namaController = TextEditingController();
+  final TextEditingController _emailDaftarController = TextEditingController();
+  final TextEditingController _passwordDaftarController =
+      TextEditingController();
+  final TextEditingController _konfirmasiPasswordController =
+      TextEditingController();
 
-  bool _obscurePassword       = true;
+  bool _obscurePassword = true;
   bool _obscurePasswordDaftar = true;
-  bool _obscureKonfirmasi     = true;
-  bool _isLoading             = false;
-  int  _selectedTab           = 0; // 0 = Masuk, 1 = Daftar
+  bool _obscureKonfirmasi = true;
+  bool _isLoading = false;
+  int _selectedTab = 0; // 0 = Masuk, 1 = Daftar
 
   // Per-field validation errors
   final Map<String, String?> _fieldErrors = {};
 
   // Color palette
-  static const Color navyDark  = Color(0xFF1A2B45);
+  static const Color navyDark = Color(0xFF1A2B45);
   static const Color beigeLight = Color(0xFFFAF7F2);
   static const Color textMuted = Color(0xFF8A9BB0);
 
   static const Color _whiteOpacity03 = Color(0x08FFFFFF);
   static const Color _whiteOpacity04 = Color(0x0AFFFFFF);
   static const Color _whiteOpacity60 = Color(0x99FFFFFF);
+  static const Color _navyOpacity60 = Color(0x991A2B45);
+  static const Color _blackOpacity03 = Color(0x08000000);
 
   @override
   void dispose() {
@@ -51,14 +55,15 @@ class _LoginScreenState extends State<LoginScreen> {
   // ─────────────────────────────────────────────
 
   Future<void> _handleLogin() async {
-    final email    = _emailController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
 
     // Inline field validation
     setState(() {
       _fieldErrors.clear();
-      if (email.isEmpty)    _fieldErrors['login_email']    = 'Email wajib diisi';
-      if (password.isEmpty) _fieldErrors['login_password'] = 'Kata sandi wajib diisi';
+      if (email.isEmpty) _fieldErrors['login_email'] = 'Email wajib diisi';
+      if (password.isEmpty)
+        _fieldErrors['login_password'] = 'Kata sandi wajib diisi';
     });
     if (_fieldErrors.isNotEmpty) return;
 
@@ -77,38 +82,44 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleRegister() async {
-    final nama     = _namaController.text.trim();
-    final email    = _emailDaftarController.text.trim();
+    final nama = _namaController.text.trim();
+    final email = _emailDaftarController.text.trim();
     final password = _passwordDaftarController.text;
-    final konfirm  = _konfirmasiPasswordController.text;
+    final konfirm = _konfirmasiPasswordController.text;
 
     // Inline field validation
     setState(() {
       _fieldErrors.clear();
-      if (nama.isEmpty)     _fieldErrors['reg_nama']     = 'Nama lengkap wajib diisi';
-      if (email.isEmpty)    _fieldErrors['reg_email']    = 'Email wajib diisi';
-      if (password.isEmpty) _fieldErrors['reg_password'] = 'Kata sandi wajib diisi';
-      if (konfirm.isEmpty)  _fieldErrors['reg_konfirm']  = 'Konfirmasi kata sandi wajib diisi';
+      if (nama.isEmpty) _fieldErrors['reg_nama'] = 'Nama lengkap wajib diisi';
+      if (email.isEmpty) _fieldErrors['reg_email'] = 'Email wajib diisi';
+      if (password.isEmpty)
+        _fieldErrors['reg_password'] = 'Kata sandi wajib diisi';
+      if (konfirm.isEmpty)
+        _fieldErrors['reg_konfirm'] = 'Konfirmasi kata sandi wajib diisi';
     });
     if (_fieldErrors.isNotEmpty) return;
 
     if (password != konfirm) {
-      setState(() => _fieldErrors['reg_konfirm'] = 'Konfirmasi kata sandi tidak cocok');
+      setState(
+        () => _fieldErrors['reg_konfirm'] = 'Konfirmasi kata sandi tidak cocok',
+      );
       return;
     }
 
     if (password.length < 8) {
-      setState(() => _fieldErrors['reg_password'] = 'Kata sandi minimal 8 karakter');
+      setState(
+        () => _fieldErrors['reg_password'] = 'Kata sandi minimal 8 karakter',
+      );
       return;
     }
 
     setState(() => _isLoading = true);
 
     final result = await ApiService.register(
-      namaLengkap:           nama,
-      email:                 email,
-      password:              password,
-      passwordConfirmation:  konfirm,
+      namaLengkap: nama,
+      email: email,
+      password: password,
+      passwordConfirmation: konfirm,
     );
 
     if (!mounted) return;
@@ -150,15 +161,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF1A2B45), Color(0xFF243655), Color(0xFF1E3252)],
+                  colors: [
+                    Color(0xFF1A2B45),
+                    Color(0xFF243655),
+                    Color(0xFF1E3252),
+                  ],
                 ),
               ),
               child: Stack(
                 children: [
                   Positioned(
-                    top: -40, right: -40,
+                    top: -40,
+                    right: -40,
                     child: Container(
-                      width: 160, height: 160,
+                      width: 160,
+                      height: 160,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: _whiteOpacity03,
@@ -166,9 +183,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   Positioned(
-                    bottom: 20, left: -30,
+                    bottom: 20,
+                    left: -30,
                     child: Container(
-                      width: 100, height: 100,
+                      width: 100,
+                      height: 100,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: _whiteOpacity04,
@@ -223,7 +242,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 28,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -256,8 +278,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-
-
   // ── Masuk Form ──
   Widget _buildMasukForm() {
     return Column(
@@ -265,7 +285,12 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         _buildLabel('EMAIL'),
         const SizedBox(height: 8),
-        _buildTextField(controller: _emailController, hint: 'Masukkan email anda', keyboardType: TextInputType.emailAddress, errorText: _fieldErrors['login_email']),
+        _buildTextField(
+          controller: _emailController,
+          hint: 'Masukkan email anda',
+          keyboardType: TextInputType.emailAddress,
+          errorText: _fieldErrors['login_email'],
+        ),
         const SizedBox(height: 20),
 
         _buildLabel('KATA SANDI'),
@@ -280,8 +305,11 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Padding(
               padding: const EdgeInsets.only(right: 14),
               child: Icon(
-                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                size: 20, color: textMuted,
+                _obscurePassword
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                size: 20,
+                color: textMuted,
               ),
             ),
           ),
@@ -305,7 +333,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   TextSpan(
                     text: 'Daftar',
-                    style: TextStyle(color: Color(0xFF2D5A8E), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: Color(0xFF2D5A8E),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -324,12 +355,21 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         _buildLabel('NAMA LENGKAP'),
         const SizedBox(height: 8),
-        _buildTextField(controller: _namaController, hint: 'Masukkan nama lengkap', errorText: _fieldErrors['reg_nama']),
+        _buildTextField(
+          controller: _namaController,
+          hint: 'Masukkan nama lengkap',
+          errorText: _fieldErrors['reg_nama'],
+        ),
         const SizedBox(height: 20),
 
         _buildLabel('EMAIL'),
         const SizedBox(height: 8),
-        _buildTextField(controller: _emailDaftarController, hint: 'Masukkan email anda', keyboardType: TextInputType.emailAddress, errorText: _fieldErrors['reg_email']),
+        _buildTextField(
+          controller: _emailDaftarController,
+          hint: 'Masukkan email anda',
+          keyboardType: TextInputType.emailAddress,
+          errorText: _fieldErrors['reg_email'],
+        ),
         const SizedBox(height: 20),
 
         _buildLabel('KATA SANDI'),
@@ -340,12 +380,17 @@ class _LoginScreenState extends State<LoginScreen> {
           obscure: _obscurePasswordDaftar,
           errorText: _fieldErrors['reg_password'],
           suffix: GestureDetector(
-            onTap: () => setState(() => _obscurePasswordDaftar = !_obscurePasswordDaftar),
+            onTap: () => setState(
+              () => _obscurePasswordDaftar = !_obscurePasswordDaftar,
+            ),
             child: Padding(
               padding: const EdgeInsets.only(right: 14),
               child: Icon(
-                _obscurePasswordDaftar ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                size: 20, color: textMuted,
+                _obscurePasswordDaftar
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                size: 20,
+                color: textMuted,
               ),
             ),
           ),
@@ -360,12 +405,16 @@ class _LoginScreenState extends State<LoginScreen> {
           obscure: _obscureKonfirmasi,
           errorText: _fieldErrors['reg_konfirm'],
           suffix: GestureDetector(
-            onTap: () => setState(() => _obscureKonfirmasi = !_obscureKonfirmasi),
+            onTap: () =>
+                setState(() => _obscureKonfirmasi = !_obscureKonfirmasi),
             child: Padding(
               padding: const EdgeInsets.only(right: 14),
               child: Icon(
-                _obscureKonfirmasi ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                size: 20, color: textMuted,
+                _obscureKonfirmasi
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                size: 20,
+                color: textMuted,
               ),
             ),
           ),
@@ -387,7 +436,11 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'atau',
-                style: TextStyle(fontSize: 13, color: textMuted, fontWeight: FontWeight.w400),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: textMuted,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
             ),
             Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
@@ -403,15 +456,10 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () {
               // TODO: Implement Google Sign-In
             },
-            icon: Image.network(
-              'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-              width: 20,
-              height: 20,
-              errorBuilder: (context, error, stackTrace) => const Icon(
-                Icons.g_mobiledata_rounded,
-                size: 24,
-                color: Color(0xFF1A2B45),
-              ),
+            icon: const Icon(
+              Icons.g_mobiledata_rounded,
+              size: 24,
+              color: Color(0xFF1A2B45),
             ),
             label: const Text(
               'Daftar dengan Google',
@@ -423,7 +471,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Color(0xFFDDD8CE), width: 1.2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               backgroundColor: Colors.white,
             ),
           ),
@@ -441,7 +491,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   TextSpan(
                     text: 'Masuk',
-                    style: TextStyle(color: Color(0xFF2D5A8E), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: Color(0xFF2D5A8E),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -468,17 +521,27 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: navyDark,
           foregroundColor: Colors.white,
           elevation: 0,
-          disabledBackgroundColor: navyDark.withOpacity(0.6),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          disabledBackgroundColor: _navyOpacity60,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
         child: isLoading
             ? const SizedBox(
-                width: 20, height: 20,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
               )
             : Text(
                 label,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.3),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
               ),
       ),
     );
@@ -488,8 +551,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return Text(
       label,
       style: const TextStyle(
-        fontSize: 11, fontWeight: FontWeight.w700,
-        letterSpacing: 1.2, color: Color(0xFF6B7A8D),
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.2,
+        color: Color(0xFF6B7A8D),
       ),
     );
   }
@@ -511,11 +576,17 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: hasError ? const Color(0xFFC0392B) : const Color(0xFFDDD8CE),
+              color: hasError
+                  ? const Color(0xFFC0392B)
+                  : const Color(0xFFDDD8CE),
               width: hasError ? 1.5 : 1,
             ),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 1)),
+            boxShadow: const [
+              BoxShadow(
+                color: _blackOpacity03,
+                blurRadius: 4,
+                offset: Offset(0, 1),
+              ),
             ],
           ),
           child: TextField(
@@ -526,10 +597,16 @@ class _LoginScreenState extends State<LoginScreen> {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13.5),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 15,
+              ),
               border: InputBorder.none,
               suffixIcon: suffix,
-              suffixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              suffixIconConstraints: const BoxConstraints(
+                minWidth: 44,
+                minHeight: 44,
+              ),
             ),
           ),
         ),

@@ -68,15 +68,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       ),
     );
 
-    _entranceSlide = Tween<Offset>(
-      begin: const Offset(0, 0.15),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.1, 0.8, curve: Curves.easeOutCubic),
-      ),
-    );
+    _entranceSlide =
+        Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entranceController,
+            curve: const Interval(0.1, 0.8, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _entranceController.forward();
   }
@@ -109,10 +107,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1A2B45),
-              Color(0xFF243655),
-            ],
+            colors: [Color(0xFF1A2B45), Color(0xFF243655)],
           ),
         ),
         child: Stack(
@@ -156,10 +151,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     child: PageView(
                       controller: _pageController,
                       onPageChanged: _onPageChanged,
-                      children: [
-                        _buildPage1(),
-                        _buildPage2(),
-                      ],
+                      children: [_buildPage1(), _buildPage2()],
                     ),
                   ),
 
@@ -449,10 +441,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           Positioned(
             bottom: 25,
             left: 10,
-            child: _buildFloatingChip(
-              Icons.edit_note_rounded,
-              _goldOpacity80,
-            ),
+            child: _buildFloatingChip(Icons.edit_note_rounded, _goldOpacity80),
           ),
           Positioned(
             top: 40,
@@ -486,11 +475,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
-                colors: [
-                  _goldOpacity08,
-                  _goldOpacity02,
-                  Colors.transparent,
-                ],
+                colors: [_goldOpacity08, _goldOpacity02, Colors.transparent],
               ),
             ),
           ),
@@ -535,11 +520,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.pets,
-              size: 44,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.pets, size: 44, color: Colors.white),
           ),
 
           // Floating mini-cards
@@ -559,11 +540,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               _accentOpacity90,
             ),
           ),
-          Positioned(
-            top: 35,
-            right: 15,
-            child: _buildSmallDot(_goldOpacity40),
-          ),
+          Positioned(top: 35, right: 15, child: _buildSmallDot(_goldOpacity40)),
           Positioned(
             bottom: 40,
             left: 25,
@@ -598,10 +575,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return Container(
       width: 8,
       height: 8,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 
@@ -628,12 +602,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   borderRadius: BorderRadius.circular(4),
                   color: isActive ? Colors.white : _whiteOpacity20,
                   boxShadow: isActive
-                      ? const [
-                          BoxShadow(
-                            color: _whiteOpacity30,
-                            blurRadius: 6,
-                          ),
-                        ]
+                      ? const [BoxShadow(color: _whiteOpacity30, blurRadius: 6)]
                       : null,
                 ),
               );
@@ -701,10 +670,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 color: const Color(0x1A1A2B45),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.arrow_forward_rounded,
-                size: 18,
-              ),
+              child: const Icon(Icons.arrow_forward_rounded, size: 18),
             ),
           ],
         ),
@@ -730,10 +696,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(
-              color: _whiteOpacity15,
-              width: 1,
-            ),
+            side: const BorderSide(color: _whiteOpacity15, width: 1),
           ),
         ),
         child: const Row(
@@ -774,11 +737,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
-              colors: [
-                _accentOpacity06,
-                _accentOpacity01,
-                Colors.transparent,
-              ],
+              colors: [_accentOpacity06, _accentOpacity01, Colors.transparent],
             ),
           ),
         ),
@@ -793,11 +752,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
-              colors: [
-                _goldOpacity05,
-                _goldOpacity01,
-                Colors.transparent,
-              ],
+              colors: [_goldOpacity05, _goldOpacity01, Colors.transparent],
             ),
           ),
         ),

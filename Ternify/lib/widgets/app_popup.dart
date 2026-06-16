@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 /// Widget popup kustom yang muncul di tengah layar.
 /// Tidak mengganggu layout BottomNavigationBar / FAB.
 class AppPopup {
-  static const Color navyDark   = Color(0xFF1A2B45);
-  static const Color redError   = Color(0xFFC0392B);
+  static const Color navyDark = Color(0xFF1A2B45);
+  static const Color redError = Color(0xFFC0392B);
   static const Color beigeLight = Color(0xFFFAF7F2);
 
   /// Tampilkan popup sukses/error di tengah layar
@@ -63,13 +63,15 @@ class _PopupOverlayState extends State<_PopupOverlay>
       duration: const Duration(milliseconds: 350),
     );
 
-    _scaleAnim = Tween<double>(begin: 0.7, end: 1.0).animate(
-      CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutBack),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutBack));
 
-    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut),
-    );
+    _fadeAnim = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
 
     _animCtrl.forward();
 
@@ -93,9 +95,11 @@ class _PopupOverlayState extends State<_PopupOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final isError  = widget.isError;
-    final accent   = isError ? AppPopup.redError : AppPopup.navyDark;
-    final iconData = isError ? Icons.error_outline_rounded : Icons.check_circle_rounded;
+    final isError = widget.isError;
+    final accent = isError ? AppPopup.redError : AppPopup.navyDark;
+    final iconData = isError
+        ? Icons.error_outline_rounded
+        : Icons.check_circle_rounded;
 
     return AnimatedBuilder(
       animation: _animCtrl,

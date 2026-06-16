@@ -20,8 +20,9 @@ class MyApp extends StatelessWidget {
       // Cek token dulu sebelum menentukan halaman awal
       home: const AuthGate(),
       routes: {
-        '/':          (ctx) => const LoginScreen(),
-        '/dashboard': (ctx) => const Placeholder(), // ganti dengan DashboardScreen()
+        '/': (ctx) => const LoginScreen(),
+        '/dashboard': (ctx) =>
+            const Placeholder(), // ganti dengan DashboardScreen()
         // tambahkan route lain sesuai kebutuhan
       },
     );

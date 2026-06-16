@@ -4,7 +4,6 @@ import '../models/kandang_model.dart';
 import '../services/api_service.dart';
 
 class KandangRepository {
-
   /// GET /api/kandang — Daftar semua kandang
   Future<List<Kandang>> fetchKandang() async {
     try {
@@ -37,7 +36,7 @@ class KandangRepository {
         final d = body['data'];
         return {
           'total_kandang': d['total_kandang'] as int,
-          'total_domba':   d['total_domba'] as int,
+          'total_domba': d['total_domba'] as int,
         };
       }
       throw body['message'] ?? 'Terjadi kesalahan.';

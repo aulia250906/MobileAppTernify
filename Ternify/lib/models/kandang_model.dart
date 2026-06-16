@@ -15,18 +15,18 @@ class Kandang {
 
   factory Kandang.fromJson(Map<String, dynamic> json) {
     return Kandang(
-      idKandang:    json['id_kandang'] ?? '',
-      namaKandang:  json['nama_kandang'] ?? '',
-      tipeKandang:  json['tipe_kandang'],
-      kapasitas:    json['kapasitas'] as int? ?? 0,
-      jumlahDomba:  json['jumlah_domba'] as int? ?? 0,
+      idKandang: json['id_kandang'] ?? '',
+      namaKandang: json['nama_kandang'] ?? '',
+      tipeKandang: json['tipe_kandang'],
+      kapasitas: json['kapasitas'] as int? ?? 0,
+      jumlahDomba: json['jumlah_domba'] as int? ?? 0,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'nama_kandang': namaKandang,
     'tipe_kandang': tipeKandang,
-    'kapasitas':    kapasitas,
+    'kapasitas': kapasitas,
   };
 
   double get persentaseIsi =>

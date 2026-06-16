@@ -19,19 +19,36 @@ class _MainShellState extends State<MainShell> {
 
   static const Color navyDark = Color(0xFF1A2B45);
 
-  // Halaman (tanpa bottom nav sendiri — sudah dihandle di sini)
-  final List<Widget> _pages = [
-    const DashboardScreen(),
-    const RiwayatScanScreen(),
-    ScanCatatanScreen(key: ScanCatatanScreen.globalKey),
-    const KandangScreen(),
-    const ProfilScreen(),
-  ];
+  // Pre-computed opacity colors
+  static const Color _blackOpacity06 = Color(0x0F000000);
+  static const Color _navyOpacity35 = Color(0x591A2B45);
+  static const Color _whiteOpacity30 = Color(0x4DFFFFFF);
+
+  // Track halaman yang sudah pernah dikunjungi
+  final Set<int> _loadedPages = {};
+
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return const DashboardScreen();
+      case 1:
+        return const RiwayatScanScreen();
+      case 2:
+        return ScanCatatanScreen(key: ScanCatatanScreen.globalKey);
+      case 3:
+        return const KandangScreen();
+      case 4:
+        return const ProfilScreen();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _loadedPages.add(_selectedIndex);
   }
 
   @override
@@ -40,7 +57,10 @@ class _MainShellState extends State<MainShell> {
       resizeToAvoidBottomInset: false,
       body: IndexedStack(
         index: _selectedIndex,
-        children: _pages,
+        children: List.generate(5, (i) {
+          if (_loadedPages.contains(i)) return _buildPage(i);
+          return const SizedBox.shrink();
+        }),
       ),
       bottomNavigationBar: _buildBottomNav(),
       floatingActionButton: _buildScanFAB(),
@@ -50,21 +70,37 @@ class _MainShellState extends State<MainShell> {
 
   Widget _buildBottomNav() {
     final items = [
-      {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'label': 'Dashboard'},
-      {'icon': Icons.history_outlined, 'activeIcon': Icons.history, 'label': 'Riwayat'},
+      {
+        'icon': Icons.home_outlined,
+        'activeIcon': Icons.home,
+        'label': 'Dashboard',
+      },
+      {
+        'icon': Icons.history_outlined,
+        'activeIcon': Icons.history,
+        'label': 'Riwayat',
+      },
       null, // FAB placeholder
-      {'icon': Icons.grid_view_outlined, 'activeIcon': Icons.grid_view, 'label': 'Kandang'},
-      {'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': 'Profil'},
+      {
+        'icon': Icons.grid_view_outlined,
+        'activeIcon': Icons.grid_view,
+        'label': 'Kandang',
+      },
+      {
+        'icon': Icons.person_outline,
+        'activeIcon': Icons.person,
+        'label': 'Profil',
+      },
     ];
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: _blackOpacity06,
             blurRadius: 12,
-            offset: const Offset(0, -3),
+            offset: Offset(0, -3),
           ),
         ],
       ),
@@ -97,8 +133,9 @@ class _MainShellState extends State<MainShell> {
                         style: TextStyle(
                           fontSize: 10,
                           color: isSelected ? navyDark : Colors.grey.shade400,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ],
@@ -113,7 +150,10 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _onTabTapped(int index) {
-    setState(() => _selectedIndex = index);
+    setState(() {
+      _selectedIndex = index;
+      _loadedPages.add(index);
+    });
     if (index == 2) {
       // Show source picker popup when navigating to scan tab
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -139,18 +179,22 @@ class _MainShellState extends State<MainShell> {
                 : [const Color(0xFF243655), const Color(0xFF1A2B45)],
           ),
           shape: BoxShape.circle,
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: const Color(0xFF1A2B45).withOpacity(0.35),
+              color: _navyOpacity35,
               blurRadius: 12,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
           border: isActive
-              ? Border.all(color: Colors.white.withOpacity(0.3), width: 2)
+              ? Border.all(color: _whiteOpacity30, width: 2)
               : null,
         ),
-        child: const Icon(Icons.crop_free_rounded, color: Colors.white, size: 26),
+        child: const Icon(
+          Icons.crop_free_rounded,
+          color: Colors.white,
+          size: 26,
+        ),
       ),
     );
   }

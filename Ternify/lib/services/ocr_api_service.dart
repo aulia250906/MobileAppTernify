@@ -30,10 +30,7 @@ class OCRApiService {
 
       // Buat FormData untuk multipart upload
       FormData formData = FormData.fromMap({
-        'file': MultipartFile.fromBytes(
-          bytes,
-          filename: xFile.name,
-        ),
+        'file': MultipartFile.fromBytes(bytes, filename: xFile.name),
       });
 
       // Send POST request

@@ -27,27 +27,31 @@ class Domba {
 
   factory Domba.fromJson(Map<String, dynamic> json) {
     return Domba(
-      idDomba:      json['id_domba'] ?? '',
-      earTag:       json['ear_tag'] ?? '',
-      idBangsa:     json['id_bangsa'],
+      idDomba: json['id_domba'] ?? '',
+      earTag: json['ear_tag'] ?? '',
+      idBangsa: json['id_bangsa'],
       jenisKelamin: json['jenis_kelamin'] ?? '',
       tanggalLahir: json['tanggal_lahir'],
-      idInduk:      json['id_induk'],
-      idPejantan:   json['id_pejantan'],
-      induk:        json['induk'] != null ? Map<String, dynamic>.from(json['induk']) : null,
-      pejantan:     json['pejantan'] != null ? Map<String, dynamic>.from(json['pejantan']) : null,
-      createdAt:    json['created_at'],
-      updatedAt:    json['updated_at'],
+      idInduk: json['id_induk'],
+      idPejantan: json['id_pejantan'],
+      induk: json['induk'] != null
+          ? Map<String, dynamic>.from(json['induk'])
+          : null,
+      pejantan: json['pejantan'] != null
+          ? Map<String, dynamic>.from(json['pejantan'])
+          : null,
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'ear_tag':       earTag,
-    'id_bangsa':     idBangsa,
+    'ear_tag': earTag,
+    'id_bangsa': idBangsa,
     'jenis_kelamin': jenisKelamin,
     'tanggal_lahir': tanggalLahir,
-    'id_induk':      idInduk,
-    'id_pejantan':   idPejantan,
+    'id_induk': idInduk,
+    'id_pejantan': idPejantan,
   };
 
   /// Nama induk dari relasi (jika dimuat)
@@ -72,6 +76,9 @@ class Domba {
   }
 
   /// Label jenis kelamin yang lebih rapi
-  String get jenisKelaminLabel =>
-      jenisKelamin == 'jantan' ? 'Jantan' : jenisKelamin == 'betina' ? 'Betina' : jenisKelamin;
+  String get jenisKelaminLabel => jenisKelamin == 'jantan'
+      ? 'Jantan'
+      : jenisKelamin == 'betina'
+      ? 'Betina'
+      : jenisKelamin;
 }

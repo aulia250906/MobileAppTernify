@@ -20,14 +20,17 @@ class ApiService {
   }
 
   static const String _tokenKey = 'auth_token';
-  static const String _userKey  = 'user_data';
+  static const String _userKey = 'user_data';
 
   // ─────────────────────────────────────────────
   // TOKEN MANAGEMENT (persistent login)
   // ─────────────────────────────────────────────
 
   /// Simpan token & data user ke SharedPreferences
-  static Future<void> saveSession(String token, Map<String, dynamic> user) async {
+  static Future<void> saveSession(
+    String token,
+    Map<String, dynamic> user,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
     await prefs.setString(_userKey, jsonEncode(user));
@@ -84,12 +87,15 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/register'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({
-          'nama_lengkap':            namaLengkap,
-          'email':                   email,
-          'password':                password,
-          'password_confirmation':   passwordConfirmation,
+          'nama_lengkap': namaLengkap,
+          'email': email,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
         }),
       );
 
@@ -115,7 +121,10 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({'email': email, 'password': password}),
       );
 
@@ -167,11 +176,11 @@ class ApiService {
   }) async {
     try {
       final body = <String, dynamic>{};
-      if (namaLengkap    != null) body['nama_lengkap']    = namaLengkap;
-      if (email          != null) body['email']           = email;
-      if (noTelepon      != null) body['no_telepon']      = noTelepon;
+      if (namaLengkap != null) body['nama_lengkap'] = namaLengkap;
+      if (email != null) body['email'] = email;
+      if (noTelepon != null) body['no_telepon'] = noTelepon;
       if (namaPeternakan != null) body['nama_peternakan'] = namaPeternakan;
-      if (lokasi         != null) body['lokasi']          = lokasi;
+      if (lokasi != null) body['lokasi'] = lokasi;
 
       final response = await http.put(
         Uri.parse('$baseUrl/profile'),
@@ -214,7 +223,7 @@ class ApiService {
       return {'success': false, 'message': 'Koneksi gagal: $e'};
     }
   }
-    // ─────────────────────────────────────────────
+  // ─────────────────────────────────────────────
   // DOMBA API
   // ─────────────────────────────────────────────
 
@@ -234,10 +243,7 @@ class ApiService {
 
     final uri = Uri.parse('$baseUrl/domba').replace(queryParameters: query);
 
-    final response = await http.get(
-      uri,
-      headers: await authHeaders(),
-    );
+    final response = await http.get(uri, headers: await authHeaders());
 
     final decoded = jsonDecode(response.body);
 
