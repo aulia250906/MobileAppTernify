@@ -90,6 +90,7 @@ class _SplashScreenState extends State<SplashScreen>
     _pulseController.stop();
 
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     final isFirstTime = prefs.getBool('isFirstTime') ?? true;
     if (isFirstTime) {
       Navigator.pushReplacementNamed(context, '/onboarding');

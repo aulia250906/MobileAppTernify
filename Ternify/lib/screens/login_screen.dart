@@ -28,11 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Color palette
   static const Color navyDark  = Color(0xFF1A2B45);
-  static const Color navyMid   = Color(0xFF243655);
-  static const Color beige     = Color(0xFFF5F0E8);
   static const Color beigeLight = Color(0xFFFAF7F2);
   static const Color textMuted = Color(0xFF8A9BB0);
-  static const Color accent    = Color(0xFF2D4A6E);
 
   static const Color _whiteOpacity03 = Color(0x08FFFFFF);
   static const Color _whiteOpacity04 = Color(0x0AFFFFFF);
@@ -261,66 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // ── Segmented Control ──
-  Widget _buildSegmentedControl() {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8E2D6),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final halfWidth = (constraints.maxWidth - 4) / 2;
-          return Stack(
-            children: [
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                left: _selectedTab == 0 ? 0 : halfWidth + 4,
-                top: 0, bottom: 0,
-                width: halfWidth,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x14000000), blurRadius: 4, offset: Offset(0, 1)),
-                    ],
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  Expanded(child: _buildTab('Masuk', 0)),
-                  Expanded(child: _buildTab('Daftar', 1)),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
 
-  Widget _buildTab(String label, int index) {
-    final isActive = _selectedTab == index;
-    return GestureDetector(
-      onTap: () => setState(() { _selectedTab = index; _fieldErrors.clear(); }),
-      behavior: HitTestBehavior.opaque,
-      child: Center(
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-            color: isActive ? navyDark : textMuted,
-          ),
-        ),
-      ),
-    );
-  }
 
   // ── Masuk Form ──
   Widget _buildMasukForm() {

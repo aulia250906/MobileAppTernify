@@ -1,13 +1,23 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 
 class ApiService {
   // Ganti dengan IP/URL server kamu
   // Emulator Android  : http://10.0.2.2:8000/api
   // Device fisik      : http://192.168.x.x:8000/api
   // Production        : https://domain-kamu.com/api
-static const String baseUrl = 'http://127.0.0.1:8000/api';
+  static String get baseUrl {
+    if (kIsWeb) {
+      return "http://localhost:8000/api";
+    }
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      return "http://127.0.0.1:8000/api";
+    }
+    return "http://10.0.2.2:8000/api"; // Untuk Android Emulator. Ubah ke "http://192.168.0.178:8000/api" jika menggunakan HP Fisik.
+  }
 
   static const String _tokenKey = 'auth_token';
   static const String _userKey  = 'user_data';

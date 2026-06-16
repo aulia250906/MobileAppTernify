@@ -35,24 +35,64 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
   final ImagePicker _picker = ImagePicker();
 
   final List<Map<String, dynamic>> _ocrItems = [
-    {'id': 'DOM-001', 'berat': '34.5 kg', 'status': 'Sehat', 'statusColor': Color(0xFF4CAF50)},
-    {'id': 'DOM-002', 'berat': '32.8 kg', 'status': 'Bunting', 'statusColor': Color(0xFFCFBFA5)},
-    {'id': 'DOM-005', 'berat': '38.2 kg', 'status': 'Sehat', 'statusColor': Color(0xFF4CAF50)},
+    {
+      'id': 'DOM-001',
+      'berat': '34.5 kg',
+      'status': 'Sehat',
+      'statusColor': Color(0xFF4CAF50),
+    },
+    {
+      'id': 'DOM-002',
+      'berat': '32.8 kg',
+      'status': 'Bunting',
+      'statusColor': Color(0xFFCFBFA5),
+    },
+    {
+      'id': 'DOM-005',
+      'berat': '38.2 kg',
+      'status': 'Sehat',
+      'statusColor': Color(0xFF4CAF50),
+    },
   ];
 
   final List<Map<String, dynamic>> _confidenceItems = [
-    {'label': 'CATATAN BERAT\nDOMBA', 'value': 0.95, 'pct': '95%', 'color': Color(0xFF4CAF50)},
-    {'label': 'Tanggal', 'value': 0.92, 'pct': '92%', 'color': Color(0xFF4CAF50)},
-    {'label': 'DOM-001 34.5 kg', 'value': 0.89, 'pct': '89%', 'color': Color(0xFF4CAF50)},
-    {'label': 'DOM-002 32.8 kg', 'value': 0.68, 'pct': '68%', 'color': Color(0xFFFF9800)},
-    {'label': 'DOM-005 38.2 kg', 'value': 0.91, 'pct': '91%', 'color': Color(0xFF4CAF50)},
+    {
+      'label': 'CATATAN BERAT\nDOMBA',
+      'value': 0.95,
+      'pct': '95%',
+      'color': Color(0xFF4CAF50),
+    },
+    {
+      'label': 'Tanggal',
+      'value': 0.92,
+      'pct': '92%',
+      'color': Color(0xFF4CAF50),
+    },
+    {
+      'label': 'DOM-001 34.5 kg',
+      'value': 0.89,
+      'pct': '89%',
+      'color': Color(0xFF4CAF50),
+    },
+    {
+      'label': 'DOM-002 32.8 kg',
+      'value': 0.68,
+      'pct': '68%',
+      'color': Color(0xFFFF9800),
+    },
+    {
+      'label': 'DOM-005 38.2 kg',
+      'value': 0.91,
+      'pct': '91%',
+      'color': Color(0xFF4CAF50),
+    },
   ];
 
   // ──────────────────────────── Source Picker Bottom Sheet ────────────────────
 
   /// Public method — called from MainShell when scan tab becomes active
   void showSourcePickerSheet() {
-    if (_sheetShown) return;   // don't stack multiple sheets
+    if (_sheetShown) return; // don't stack multiple sheets
     _sheetShown = true;
     showModalBottomSheet(
       context: context,
@@ -129,8 +169,8 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
             child: _isProcessing
                 ? _buildProcessingView()
                 : _hasImage
-                    ? _buildResultView()
-                    : _buildEmptyView(),
+                ? _buildResultView()
+                : _buildEmptyView(),
           ),
         ],
       ),
@@ -153,7 +193,11 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
                 color: const Color(0xFFE8E3DA),
                 borderRadius: BorderRadius.circular(22),
               ),
-              child: const Icon(Icons.document_scanner_outlined, size: 42, color: navyDark),
+              child: const Icon(
+                Icons.document_scanner_outlined,
+                size: 42,
+                color: navyDark,
+              ),
             ),
             const SizedBox(height: 22),
             const Text(
@@ -183,7 +227,9 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -299,7 +345,8 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
 
   Widget _notifButton() {
     return Container(
-      width: 38, height: 38,
+      width: 38,
+      height: 38,
       decoration: BoxDecoration(
         color: _whiteOpacity10,
         borderRadius: BorderRadius.circular(10),
@@ -307,12 +354,21 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const Icon(Icons.notifications_outlined, color: Colors.white70, size: 20),
+          const Icon(
+            Icons.notifications_outlined,
+            color: Colors.white70,
+            size: 20,
+          ),
           Positioned(
-            top: 7, right: 7,
+            top: 7,
+            right: 7,
             child: Container(
-              width: 7, height: 7,
-              decoration: const BoxDecoration(color: Color(0xFFFF6B6B), shape: BoxShape.circle),
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFF6B6B),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
         ],
@@ -337,12 +393,17 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 56, height: 56,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
                 color: _whiteOpacity60,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.camera_alt_outlined, size: 28, color: Color(0xFF6B7A8D)),
+              child: const Icon(
+                Icons.camera_alt_outlined,
+                size: 28,
+                color: Color(0xFF6B7A8D),
+              ),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -374,10 +435,15 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
             style: OutlinedButton.styleFrom(
               foregroundColor: navyDark,
               side: const BorderSide(color: Color(0xFFBFB8A8), width: 1.5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 13),
             ),
-            child: const Text('Dari Galeri', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            child: const Text(
+              'Dari Galeri',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -388,10 +454,15 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
               backgroundColor: navyDark,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 13),
             ),
-            child: const Text('Kamera', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Kamera',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ],
@@ -447,17 +518,31 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Wrap(
-                spacing: 6, runSpacing: 6,
-                children: ['CATATAN', 'BERAT', 'DOMBA'].map((tag) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _whiteOpacity12,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(tag,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                        color: Colors.white, letterSpacing: 0.5)),
-                )).toList(),
+                spacing: 6,
+                runSpacing: 6,
+                children: ['CATATAN', 'BERAT', 'DOMBA']
+                    .map(
+                      (tag) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _whiteOpacity12,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          tag,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 12),
               _ocrInfoRow('Tanggal:', '10 Maret 2026', highlight: true),
@@ -471,34 +556,58 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
                     children: [
                       SizedBox(
                         width: 70,
-                        child: Text('${item['id']} :',
-                          style: const TextStyle(fontSize: 12.5, color: Colors.white70)),
+                        child: Text(
+                          '${item['id']} :',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: Colors.white70,
+                          ),
+                        ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: _whiteOpacity12,
                           borderRadius: BorderRadius.circular(5),
                         ),
-                        child: Text(item['berat'],
-                          style: const TextStyle(fontSize: 12, color: Colors.white)),
+                        child: Text(
+                          item['berat'],
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Text('—', style: TextStyle(color: Colors.white54)),
+                        child: Text(
+                          '—',
+                          style: TextStyle(color: Colors.white54),
+                        ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: (item['statusColor'] as Color).withOpacity(
-                            item['status'] == 'Bunting' ? 0.4 : 0.2),
+                            item['status'] == 'Bunting' ? 0.4 : 0.2,
+                          ),
                           borderRadius: BorderRadius.circular(5),
                         ),
-                        child: Text(item['status'],
+                        child: Text(
+                          item['status'],
                           style: TextStyle(
                             fontSize: 12,
-                            color: item['status'] == 'Bunting' ? const Color(0xFFE8D5B0) : Colors.white,
-                          )),
+                            color: item['status'] == 'Bunting'
+                                ? const Color(0xFFE8D5B0)
+                                : Colors.white,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -516,12 +625,16 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-          decoration: highlight ? BoxDecoration(
-            color: _whiteOpacity12,
-            borderRadius: BorderRadius.circular(5),
-          ) : null,
-          child: Text(label,
-            style: const TextStyle(fontSize: 12.5, color: Colors.white70)),
+          decoration: highlight
+              ? BoxDecoration(
+                  color: _whiteOpacity12,
+                  borderRadius: BorderRadius.circular(5),
+                )
+              : null,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 12.5, color: Colors.white70),
+          ),
         ),
         const SizedBox(width: 6),
         Container(
@@ -530,8 +643,10 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
             color: _whiteOpacity12,
             borderRadius: BorderRadius.circular(5),
           ),
-          child: Text(value,
-            style: const TextStyle(fontSize: 12.5, color: Colors.white)),
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 12.5, color: Colors.white),
+          ),
         ),
       ],
     );
@@ -546,7 +661,11 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
         color: cardWhite,
         borderRadius: BorderRadius.circular(14),
         boxShadow: const [
-          BoxShadow(color: _blackOpacity05, blurRadius: 8, offset: Offset(0, 2)),
+          BoxShadow(
+            color: _blackOpacity05,
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
@@ -554,44 +673,61 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
         children: [
           const Text(
             'Detail Confidence',
-            style: TextStyle(fontFamily: 'Georgia', fontSize: 15, fontWeight: FontWeight.bold, color: navyDark),
+            style: TextStyle(
+              fontFamily: 'Georgia',
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: navyDark,
+            ),
           ),
           const SizedBox(height: 14),
-          ..._confidenceItems.map((item) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 110,
-                  child: Text(item['label'],
-                    style: const TextStyle(fontSize: 12, color: textMuted, height: 1.3)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: item['value'],
-                      minHeight: 7,
-                      backgroundColor: const Color(0xFFEEE9DF),
-                      valueColor: AlwaysStoppedAnimation<Color>(item['color']),
+          ..._confidenceItems.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 110,
+                    child: Text(
+                      item['label'],
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: textMuted,
+                        height: 1.3,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 34,
-                  child: Text(item['pct'],
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: item['color'],
-                    )),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: item['value'],
+                        minHeight: 7,
+                        backgroundColor: const Color(0xFFEEE9DF),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          item['color'],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 34,
+                    child: Text(
+                      item['pct'],
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: item['color'],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -616,7 +752,9 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
             style: OutlinedButton.styleFrom(
               foregroundColor: navyDark,
               side: const BorderSide(color: Color(0xFFBFB8A8), width: 1.5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 13),
             ),
           ),
@@ -629,10 +767,15 @@ class ScanCatatanScreenState extends State<ScanCatatanScreen> {
               backgroundColor: navyDark,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 13),
             ),
-            child: const Text('Simpan Hasil', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Simpan Hasil',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ],
@@ -719,21 +862,25 @@ class _SourcePickerSheet extends StatelessWidget {
           // Option tiles
           Row(
             children: [
-              Expanded(child: _buildOptionTile(
-                icon: Icons.camera_alt_rounded,
-                label: 'Kamera',
-                subtitle: 'Ambil foto langsung',
-                color: const Color(0xFF3A7BF7),
-                onTap: onCameraTap,
-              )),
+              Expanded(
+                child: _buildOptionTile(
+                  icon: Icons.camera_alt_rounded,
+                  label: 'Kamera',
+                  subtitle: 'Ambil foto langsung',
+                  color: const Color(0xFF3A7BF7),
+                  onTap: onCameraTap,
+                ),
+              ),
               const SizedBox(width: 14),
-              Expanded(child: _buildOptionTile(
-                icon: Icons.photo_library_rounded,
-                label: 'Galeri',
-                subtitle: 'Pilih dari galeri',
-                color: const Color(0xFF4CAF50),
-                onTap: onGalleryTap,
-              )),
+              Expanded(
+                child: _buildOptionTile(
+                  icon: Icons.photo_library_rounded,
+                  label: 'Galeri',
+                  subtitle: 'Pilih dari galeri',
+                  color: const Color(0xFF4CAF50),
+                  onTap: onGalleryTap,
+                ),
+              ),
             ],
           ),
         ],
@@ -772,15 +919,18 @@ class _SourcePickerSheet extends StatelessWidget {
                 child: Icon(icon, size: 28, color: color),
               ),
               const SizedBox(height: 14),
-              Text(label,
+              Text(
+                label,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: navyDark,
                   fontFamily: 'Georgia',
-                )),
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(subtitle,
+              Text(
+                subtitle,
                 style: TextStyle(fontSize: 11.5, color: textMuted),
                 textAlign: TextAlign.center,
               ),
