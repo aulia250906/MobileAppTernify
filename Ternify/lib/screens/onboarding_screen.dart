@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,10 +10,7 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen>
     with SingleTickerProviderStateMixin {
-  // ── Warna statis pra-kalkulasi ──
   static const Color navyDark = Color(0xFF1A2B45);
-  static const Color accent = Color(0xFF4A90E2);
-  static const Color gold = Color(0xFFCFBFA5);
 
   static const Color _whiteOpacity50 = Color(0x80FFFFFF);
   static const Color _whiteOpacity20 = Color(0x33FFFFFF);

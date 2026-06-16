@@ -32,20 +32,28 @@ class _KandangScreenState extends State<KandangScreen> {
   }
 
   Future<void> _loadAll() async {
-    setState(() { _isLoading = true; _errorMessage = null; });
+    if (mounted) {
+      setState(() { _isLoading = true; _errorMessage = null; });
+    }
     try {
       final results = await Future.wait([
         _repo.fetchKandang(),
         _repo.fetchStatistik(),
       ]);
-      setState(() {
-        _kandangList = results[0] as List<Kandang>;
-        _stats       = results[1] as Map<String, int>;
-      });
+      if (mounted) {
+        setState(() {
+          _kandangList = results[0] as List<Kandang>;
+          _stats       = results[1] as Map<String, int>;
+        });
+      }
     } catch (e) {
-      setState(() => _errorMessage = e.toString());
+      if (mounted) {
+        setState(() => _errorMessage = e.toString());
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -527,7 +535,6 @@ class _KandangFormSheet extends StatefulWidget {
 
 class _KandangFormSheetState extends State<_KandangFormSheet> {
   static const Color navyDark  = Color(0xFF1A2B45);
-  static const Color textMuted = Color(0xFF8A9BB0);
 
   final _namaCtrl      = TextEditingController();
   final _tipeCtrl      = TextEditingController();

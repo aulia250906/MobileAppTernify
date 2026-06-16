@@ -11,7 +11,6 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  static const Color navyDark = Color(0xFF1A2B45);
   static const Color gold = Color(0xFFCFBFA5);
 
   late AnimationController _mainController;
@@ -86,6 +85,7 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 3500));
     if (!mounted) return;
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     final isFirstTime = prefs.getBool('isFirstTime') ?? true;
     if (isFirstTime) {
       Navigator.pushReplacementNamed(context, '/onboarding');
