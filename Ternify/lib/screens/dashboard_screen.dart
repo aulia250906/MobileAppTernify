@@ -103,29 +103,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String get _todayFormatted {
     final now = DateTime.now();
-    final days = [
-      'Minggu',
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu',
-    ];
+    final days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     final months = [
-      '',
-      'Januari',
-      'Februari',
-      'Maret',
-      'April',
-      'Mei',
-      'Juni',
-      'Juli',
-      'Agustus',
-      'September',
-      'Oktober',
-      'November',
-      'Desember',
+      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
     ];
     return '${days[now.weekday % 7]}, ${now.day} ${months[now.month]} ${now.year}';
   }
@@ -147,33 +128,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _buildAppBar(),
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: navyDark),
-                  )
+                ? const Center(child: CircularProgressIndicator(color: navyDark))
                 : _errorMessage != null
-                ? _buildError()
-                : RefreshIndicator(
-                    onRefresh: _loadDashboardData,
-                    color: navyDark,
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          RepaintBoundary(child: _buildSummaryCards()),
-                          const SizedBox(height: 16),
-                          RepaintBoundary(child: _buildWeightChart()),
-                          const SizedBox(height: 16),
-                          RepaintBoundary(child: _buildHealthStatus()),
-                          const SizedBox(height: 20),
-                          RepaintBoundary(child: _buildRecentDomba()),
-                          const SizedBox(height: 20),
-                          RepaintBoundary(child: _buildAlerts()),
-                        ],
+                    ? _buildError()
+                    : RefreshIndicator(
+                        onRefresh: _loadDashboardData,
+                        color: navyDark,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              RepaintBoundary(child: _buildSummaryCards()),
+                              const SizedBox(height: 16),
+                              RepaintBoundary(child: _buildWeightChart()),
+                              const SizedBox(height: 16),
+                              RepaintBoundary(child: _buildHealthStatus()),
+                              const SizedBox(height: 20),
+                              RepaintBoundary(child: _buildRecentDomba()),
+                              const SizedBox(height: 20),
+                              RepaintBoundary(child: _buildAlerts()),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
           ),
         ],
       ),
@@ -187,11 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              size: 56,
-              color: Colors.grey.shade400,
-            ),
+            Icon(Icons.cloud_off_rounded, size: 56, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
               'Gagal memuat data',
@@ -279,13 +254,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    const Icon(
-                      Icons.notifications_outlined,
-                      color: Colors.white70,
-                      size: 20,
-                    ),
+                    const Icon(Icons.notifications_outlined,
+                        color: Colors.white70, size: 20),
                     if (_statusSakit > 0)
-                      const Positioned(top: 7, right: 7, child: _NotifDot()),
+                      const Positioned(
+                        top: 7,
+                        right: 7,
+                        child: _NotifDot(),
+                      ),
                   ],
                 ),
               ),
@@ -337,9 +313,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'value': '$_statusSakit',
         'label': 'Perlu Perhatian',
         'sub': _statusSakit > 0 ? '⚠ domba sakit' : '✓ semua sehat',
-        'subColor': _statusSakit > 0
-            ? const Color(0xFFFF9800)
-            : const Color(0xFF4CAF50),
+        'subColor': _statusSakit > 0 ? const Color(0xFFFF9800) : const Color(0xFF4CAF50),
         'route': '/kandang',
       },
     ];
@@ -366,7 +340,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             itemBuilder: (context, i) {
               final s = stats[i];
               return GestureDetector(
-                onTap: () => Navigator.pushNamed(context, s['route'] as String),
+                onTap: () =>
+                    Navigator.pushNamed(context, s['route'] as String),
                 child: Container(
                   width: 120,
                   padding: const EdgeInsets.all(14),
@@ -428,36 +403,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final betinaFrac = _totalBetina / total;
 
     final data = [
-      {
-        'label': 'Jantan',
-        'value': _totalJantan,
-        'frac': jantanFrac,
-        'color': const Color(0xFF2D4A6E),
-      },
-      {
-        'label': 'Betina',
-        'value': _totalBetina,
-        'frac': betinaFrac,
-        'color': const Color(0xFFCFBFA5),
-      },
-      {
-        'label': 'Sehat',
-        'value': _statusSehat,
-        'frac': _statusSehat / total,
-        'color': const Color(0xFF4CAF50),
-      },
-      {
-        'label': 'Bunting',
-        'value': _statusBunting,
-        'frac': _statusBunting / total,
-        'color': const Color(0xFFFF9800),
-      },
-      {
-        'label': 'Sakit',
-        'value': _statusSakit,
-        'frac': _statusSakit / total,
-        'color': const Color(0xFFE53935),
-      },
+      {'label': 'Jantan', 'value': _totalJantan, 'frac': jantanFrac, 'color': const Color(0xFF2D4A6E)},
+      {'label': 'Betina', 'value': _totalBetina, 'frac': betinaFrac, 'color': const Color(0xFFCFBFA5)},
+      {'label': 'Sehat', 'value': _statusSehat, 'frac': _statusSehat / total, 'color': const Color(0xFF4CAF50)},
+      {'label': 'Bunting', 'value': _statusBunting, 'frac': _statusBunting / total, 'color': const Color(0xFFFF9800)},
+      {'label': 'Sakit', 'value': _statusSakit, 'frac': _statusSakit / total, 'color': const Color(0xFFE53935)},
     ];
 
     return Container(
@@ -620,23 +570,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    _buildLegendRow(
-                      'Sehat',
-                      '$_statusSehat ($sehatPct%)',
-                      healthy,
-                    ),
+                    _buildLegendRow('Sehat', '$_statusSehat ($sehatPct%)', healthy),
                     const SizedBox(height: 10),
-                    _buildLegendRow(
-                      'Bunting',
-                      '$_statusBunting ($buntingPct%)',
-                      pregnant,
-                    ),
+                    _buildLegendRow('Bunting', '$_statusBunting ($buntingPct%)', pregnant),
                     const SizedBox(height: 10),
-                    _buildLegendRow(
-                      'Sakit',
-                      '$_statusSakit ($sakitPct%)',
-                      sick,
-                    ),
+                    _buildLegendRow('Sakit', '$_statusSakit ($sakitPct%)', sick),
                   ],
                 ),
               ),
@@ -715,11 +653,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: cardWhite,
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
-                BoxShadow(
-                  color: _blackOpacity04,
-                  blurRadius: 6,
-                  offset: Offset(0, 1),
-                ),
+                BoxShadow(color: _blackOpacity04, blurRadius: 6, offset: Offset(0, 1)),
               ],
             ),
             child: const Center(
@@ -742,22 +676,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             try {
               if (createdAt.isNotEmpty) {
                 final dt = DateTime.parse(createdAt);
-                final months = [
-                  'Jan',
-                  'Feb',
-                  'Mar',
-                  'Apr',
-                  'Mei',
-                  'Jun',
-                  'Jul',
-                  'Agu',
-                  'Sep',
-                  'Okt',
-                  'Nov',
-                  'Des',
-                ];
-                dateLabel =
-                    '${dt.day.toString().padLeft(2, '0')} ${months[dt.month - 1]} ${dt.year}';
+                final months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+                dateLabel = '${dt.day.toString().padLeft(2,'0')} ${months[dt.month-1]} ${dt.year}';
               }
             } catch (_) {}
 
@@ -782,10 +702,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onTap: () => Navigator.pushNamed(context, '/data-domba'),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: cardWhite,
                   borderRadius: BorderRadius.circular(12),
@@ -834,10 +751,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: statusBg,
                         borderRadius: BorderRadius.circular(6),
@@ -852,11 +766,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Icon(
-                      Icons.chevron_right,
-                      size: 18,
-                      color: Colors.grey.shade300,
-                    ),
+                    Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade300),
                   ],
                 ),
               ),
@@ -872,8 +782,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (_statusSakit > 0) {
       alerts.add({
-        'message':
-            '⚠️  $_statusSakit domba dengan status sakit perlu perhatian',
+        'message': '⚠️  $_statusSakit domba dengan status sakit perlu perhatian',
         'bg': const Color(0xFFFFF3CD),
         'border': const Color(0x4DE6A817),
         'route': '/data-domba',
@@ -882,8 +791,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (_statusBunting > 0) {
       alerts.add({
-        'message':
-            '🐑  $_statusBunting domba bunting — pastikan perawatan ekstra',
+        'message': '🐑  $_statusBunting domba bunting — pastikan perawatan ekstra',
         'bg': const Color(0xFFE8F5E9),
         'border': const Color(0x4D4CAF50),
         'route': '/data-domba',

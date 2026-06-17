@@ -62,12 +62,10 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
   List<Map<String, dynamic>> get _filteredItems {
     final query = _searchController.text.toLowerCase();
     return _allItems.where((item) {
-      final matchSearch =
-          item['name'].toString().toLowerCase().contains(query) ||
+      final matchSearch = item['name'].toString().toLowerCase().contains(query) ||
           item['sub'].toString().toLowerCase().contains(query);
       final c = item['confidence'] as int;
-      final matchFilter =
-          _activeFilter == 'Semua' ||
+      final matchFilter = _activeFilter == 'Semua' ||
           (_activeFilter == 'Tinggi (>85%)' && c > 85) ||
           (_activeFilter == 'Sedang' && c >= 60 && c <= 85) ||
           (_activeFilter == 'Rendah' && c < 60);
@@ -163,8 +161,7 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
 
   Widget _notifButton() {
     return Container(
-      width: 38,
-      height: 38,
+      width: 38, height: 38,
       decoration: BoxDecoration(
         color: _whiteOpacity10,
         borderRadius: BorderRadius.circular(10),
@@ -172,21 +169,12 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const Icon(
-            Icons.notifications_outlined,
-            color: Colors.white70,
-            size: 20,
-          ),
+          const Icon(Icons.notifications_outlined, color: Colors.white70, size: 20),
           Positioned(
-            top: 7,
-            right: 7,
+            top: 7, right: 7,
             child: Container(
-              width: 7,
-              height: 7,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFF6B6B),
-                shape: BoxShape.circle,
-              ),
+              width: 7, height: 7,
+              decoration: const BoxDecoration(color: Color(0xFFFF6B6B), shape: BoxShape.circle),
             ),
           ),
         ],
@@ -201,11 +189,7 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFDDD8CE)),
         boxShadow: const [
-          BoxShadow(
-            color: _blackOpacity04,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
+          BoxShadow(color: _blackOpacity04, blurRadius: 6, offset: Offset(0, 2)),
         ],
       ),
       child: TextField(
@@ -251,24 +235,15 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
                 border: Border.all(
                   color: isActive ? navyDark : const Color(0xFFDDD8CE),
                 ),
-                boxShadow: isActive
-                    ? const [
-                        BoxShadow(
-                          color: _navyOpacity20,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ]
-                    : [],
+                boxShadow: isActive ? const [
+                  BoxShadow(color: _navyOpacity20, blurRadius: 4, offset: Offset(0, 2)),
+                ] : [],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (f['icon'] != null) ...[
-                    Text(
-                      f['icon'] as String,
-                      style: const TextStyle(fontSize: 11),
-                    ),
+                    Text(f['icon'] as String, style: const TextStyle(fontSize: 11)),
                     const SizedBox(width: 4),
                   ],
                   Text(
@@ -299,18 +274,13 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
-          BoxShadow(
-            color: _blackOpacity04,
-            blurRadius: 6,
-            offset: Offset(0, 1),
-          ),
+          BoxShadow(color: _blackOpacity04, blurRadius: 6, offset: Offset(0, 1)),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 38, height: 38,
             decoration: BoxDecoration(
               color: const Color(0xFFF0EDE6),
               borderRadius: BorderRadius.circular(8),
@@ -324,11 +294,7 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
               children: [
                 Text(
                   item['name'],
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: navyDark,
-                  ),
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: navyDark),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
@@ -347,11 +313,7 @@ class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
             ),
             child: Text(
               '$confidence%',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
             ),
           ),
           const SizedBox(width: 6),

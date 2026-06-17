@@ -538,7 +538,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 foregroundColor: navyDark,
-                disabledForegroundColor: navyDark.withOpacity(0.4),
+                disabledForegroundColor: const Color(0x661A2B45),
               ),
               child: _isSaving
                   ? const SizedBox(
