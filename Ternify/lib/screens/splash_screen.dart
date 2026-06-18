@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
+import '../services/api_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -104,24 +105,33 @@ class _SplashScreenState extends State<SplashScreen>
     _checkAppState();
   }
 
-  Future<void> _checkAppState() async {
-    await Future.delayed(const Duration(milliseconds: 3500));
-    if (!mounted) return;
+Future<void> _checkAppState() async {
+  await Future.delayed(const Duration(milliseconds: 3500));
+  if (!mounted) return;
 
-    // Stop infinite animations before navigating away
-    _shimmerController.stop();
-    _pulseController.stop();
+  _shimmerController.stop();
+  _pulseController.stop();
 
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    final isFirstTime = prefs.getBool('isFirstTime') ?? true;
-    if (isFirstTime) {
-      Navigator.pushReplacementNamed(context, '/onboarding');
-    } else {
-      Navigator.pushReplacementNamed(context, '/login');
-    }
+  final isSessionValid = await ApiService.validateSession();
+
+  if (!mounted) return;
+
+  if (isSessionValid) {
+    Navigator.pushReplacementNamed(context, '/dashboard');
+    return;
   }
 
+  final prefs = await SharedPreferences.getInstance();
+  if (!mounted) return;
+
+  final isFirstTime = prefs.getBool('isFirstTime') ?? true;
+
+  if (isFirstTime) {
+    Navigator.pushReplacementNamed(context, '/onboarding');
+  } else {
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+}
   @override
   void dispose() {
     _mainController.dispose();

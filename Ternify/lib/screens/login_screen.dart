@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/app_popup.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -74,12 +75,39 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (result['success'] == true) {
-      Navigator.pushReplacementNamed(context, '/dashboard');
-    } else {
+   if (result['success'] == true) {
+  _showSnackbar('Registrasi berhasil. Silakan login terlebih dahulu.');
+
+  setState(() {
+    _selectedTab = 0;
+    _emailController.text = email;
+    _passwordController.clear();
+
+    _namaController.clear();
+    _emailDaftarController.clear();
+    _passwordDaftarController.clear();
+    _konfirmasiPasswordController.clear();
+    _fieldErrors.clear();
+  });
+}else {
       _showSnackbar(result['message'] ?? 'Login gagal', isError: true);
     }
   }
+
+  Future<void> _handleGoogleLogin() async {
+  setState(() => _isLoading = true);
+
+  final result = await ApiService.loginWithGoogle();
+
+  if (!mounted) return;
+  setState(() => _isLoading = false);
+
+  if (result['success'] == true) {
+    Navigator.pushReplacementNamed(context, '/dashboard');
+  } else {
+    _showSnackbar(result['message'] ?? 'Login Google gagal', isError: true);
+  }
+}
 
   Future<void> _handleRegister() async {
     final nama = _namaController.text.trim();
@@ -316,12 +344,83 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 28),
 
+        Align(
+  alignment: Alignment.centerRight,
+  child: GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ForgotPasswordScreen(),
+        ),
+      );
+    },
+    child: const Text(
+      'Lupa Kata Sandi?',
+      style: TextStyle(
+        color: Color(0xFF2D5A8E),
+        fontWeight: FontWeight.w600,
+        fontSize: 13,
+      ),
+    ),
+  ),
+),
+const SizedBox(height: 28),
+
         _buildPrimaryButton(
           label: 'Masuk',
           isLoading: _isLoading,
           onPressed: _handleLogin,
         ),
         const SizedBox(height: 20),
+
+Row(
+  children: [
+    Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+    const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        'atau',
+        style: TextStyle(
+          fontSize: 13,
+          color: textMuted,
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+    ),
+    Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+  ],
+),
+
+const SizedBox(height: 20),
+
+SizedBox(
+  width: double.infinity,
+  height: 52,
+  child: OutlinedButton.icon(
+    onPressed: _isLoading ? null : _handleGoogleLogin,
+    icon: const Icon(
+      Icons.g_mobiledata_rounded,
+      size: 24,
+      color: Color(0xFF1A2B45),
+    ),
+    label: const Text(
+      'Lanjutkan dengan akun Google',
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF1A2B45),
+      ),
+    ),
+    style: OutlinedButton.styleFrom(
+      side: const BorderSide(color: Color(0xFFDDD8CE), width: 1.2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+      backgroundColor: Colors.white,
+    ),
+  ),
+),
 
         Center(
           child: GestureDetector(
@@ -347,6 +446,8 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
+
+  
 
   // ── Daftar Form ──
   Widget _buildDaftarForm() {
@@ -447,39 +548,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
         const SizedBox(height: 20),
-
-        // ── Tombol Daftar dengan Google ──
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: OutlinedButton.icon(
-            onPressed: () {
-              // TODO: Implement Google Sign-In
-            },
-            icon: const Icon(
-              Icons.g_mobiledata_rounded,
-              size: 24,
-              color: Color(0xFF1A2B45),
-            ),
-            label: const Text(
-              'Daftar dengan Google',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A2B45),
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFFDDD8CE), width: 1.2),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              backgroundColor: Colors.white,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
         // ── Link Sudah punya akun ──
         Center(
           child: GestureDetector(

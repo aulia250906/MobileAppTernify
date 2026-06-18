@@ -9,13 +9,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('kandang', function (Blueprint $table) {
-            $table->string('id_kandang')->primary();
-            $table->string('nama_kandang')->unique();
-            $table->string('tipe_kandang')->nullable();
-            $table->integer('kapasitas')->default(0);
-            $table->timestamps();
-            $table->softDeletes();
-        });
+    $table->string('id_kandang')->primary();
+
+    $table->foreignId('user_id')
+        ->constrained('users')
+        ->cascadeOnDelete();
+
+    $table->string('nama_kandang');
+    $table->string('tipe_kandang')->nullable();
+    $table->integer('kapasitas')->default(0);
+
+    $table->timestamps();
+    $table->softDeletes();
+
+    $table->unique(['user_id', 'nama_kandang']);
+});
     }
 
     public function down(): void

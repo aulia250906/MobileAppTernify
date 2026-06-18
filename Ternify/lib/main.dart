@@ -5,16 +5,22 @@ import 'screens/data_domba_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'main_shell.dart';
+// import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_sign_in/google_sign_in.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await GoogleSignIn.instance.initialize(
+    serverClientId: '85092640392-udb6cqaglj2astjt94umt9nhlgapo90l.apps.googleusercontent.com',
+  );
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
     ),
-  );
-  runApp(const TernakDigitalApp());
+  );  runApp(const TernakDigitalApp());
 }
 
 class TernakDigitalApp extends StatelessWidget {

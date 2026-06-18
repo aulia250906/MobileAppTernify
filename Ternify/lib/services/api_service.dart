@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
+import 'package:google_sign_in/google_sign_in.dart';
 
 class ApiService {
   // Ganti dengan IP/URL server kamu
@@ -16,7 +17,7 @@ class ApiService {
     if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       return "http://127.0.0.1:8000/api";
     }
-    return "http://10.0.2.2:8000/api"; // Untuk Android Emulator. Ubah ke "http://192.168.0.178:8000/api" jika menggunakan HP Fisik.
+    return "http://192.168.18.227:8000/api"; // Untuk Android Emulator. Ubah ke "http://192.168.0.178:8000/api" jika menggunakan HP Fisik.
   }
 
   static const String _tokenKey = 'auth_token';
@@ -101,9 +102,9 @@ class ApiService {
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      if (response.statusCode == 201 && data['success'] == true) {
-        await saveSession(data['token'], data['user']);
-      }
+      // if (response.statusCode == 201 && data['success'] == true) {
+      //   await saveSession(data['token'], data['user']);
+      // }
 
       return data;
     } catch (e) {
@@ -139,6 +140,121 @@ class ApiService {
       return {'success': false, 'message': 'Koneksi gagal: $e'};
     }
   }
+
+  static Future<Map<String, dynamic>> loginWithGoogle() async {
+  try {
+    final GoogleSignInAccount googleUser =
+        await GoogleSignIn.instance.authenticate();
+
+    final String? idToken = googleUser.authentication.idToken;
+
+    if (idToken == null || idToken.isEmpty) {
+      return {
+        'success': false,
+        'message': 'ID Token Google tidak ditemukan',
+      };
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/login/google'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'id_token': idToken,
+      }),
+    );
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode == 200 && data['success'] == true) {
+      await saveSession(data['token'], data['user']);
+    }
+
+    return data;
+  } on GoogleSignInException catch (e) {
+    return {
+      'success': false,
+      'message': e.code == GoogleSignInExceptionCode.canceled
+          ? 'Login Google dibatalkan'
+          : 'Login Google gagal: ${e.description ?? e.code.name}',
+    };
+  } catch (e) {
+    return {
+      'success': false,
+      'message': 'Koneksi gagal: $e',
+    };
+  }
+}
+
+static Future<Map<String, dynamic>> forgotPasswordSendOtp({
+  required String email,
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/forgot-password/send-otp'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({'email': email}),
+    );
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  } catch (e) {
+    return {'success': false, 'message': 'Koneksi gagal: $e'};
+  }
+}
+
+static Future<Map<String, dynamic>> forgotPasswordVerifyOtp({
+  required String email,
+  required String otp,
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/forgot-password/verify-otp'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({'email': email, 'otp': otp}),
+    );
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  } catch (e) {
+    return {'success': false, 'message': 'Koneksi gagal: $e'};
+  }
+}
+
+static Future<Map<String, dynamic>> forgotPasswordReset({
+  required String email,
+  required String otp,
+  required String password,
+  required String passwordConfirmation,
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/forgot-password/reset'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'email': email,
+        'otp': otp,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      }),
+    );
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  } catch (e) {
+    return {'success': false, 'message': 'Koneksi gagal: $e'};
+  }
+}
+
+
 
   // ─────────────────────────────────────────────
   // GET PROFILE
@@ -205,24 +321,65 @@ class ApiService {
   // ─────────────────────────────────────────────
   // LOGOUT
   // ─────────────────────────────────────────────
-  static Future<Map<String, dynamic>> logout() async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/logout'),
-        headers: await authHeaders(),
-      );
+static Future<Map<String, dynamic>> logout() async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/logout'),
+      headers: await authHeaders(),
+    );
 
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+    await clearSession();
+    await GoogleSignIn.instance.signOut();
+
+    return data;
+  } catch (e) {
+    await clearSession();
+    await GoogleSignIn.instance.signOut();
+
+    return {'success': false, 'message': 'Koneksi gagal: $e'};
+  }
+}
+// ─────────────────────────────────────────────
+// VALIDATE SESSION
+// ─────────────────────────────────────────────
+static Future<bool> validateSession() async {
+  final token = await getToken();
+
+  if (token == null || token.isEmpty) {
+    return false;
+  }
+
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/profile'),
+      headers: await authHeaders(),
+    );
+
+    if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      // Hapus session lokal apapun hasilnya
-      await clearSession();
-
-      return data;
-    } catch (e) {
-      await clearSession(); // tetap hapus lokal walaupun koneksi gagal
-      return {'success': false, 'message': 'Koneksi gagal: $e'};
+      if (data['success'] == true) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_userKey, jsonEncode(data['user']));
+        return true;
+      }
     }
+
+    if (response.statusCode == 401) {
+      await clearSession();
+      return false;
+    }
+
+    return false;
+  } catch (_) {
+    // Kalau koneksi gagal, tapi token masih ada, user tetap boleh masuk.
+    // Ini cocok kalau aplikasi kamu punya mode offline.
+    return true;
   }
+}
+
   // ─────────────────────────────────────────────
   // DOMBA API
   // ─────────────────────────────────────────────

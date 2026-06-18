@@ -10,13 +10,20 @@ class User extends Authenticatable
     use HasApiTokens;
 
     protected $fillable = [
-        'nama_lengkap',
-        'email',
-        'password',
-        'no_telepon',
-        'nama_peternakan',
-        'lokasi',
+        'google_id',
+    'nama_lengkap',
+    'email',
+    'password',
+    'avatar',
+    'email_verified_at',
+    'no_telepon',
+    'nama_peternakan',
+    'lokasi',
     ];
+    
+    protected $casts = [
+    'email_verified_at' => 'datetime',
+];
 
     protected $hidden = [
         'password',
