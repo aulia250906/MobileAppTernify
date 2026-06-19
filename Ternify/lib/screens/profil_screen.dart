@@ -35,10 +35,16 @@ class _ProfilScreenState extends State<ProfilScreen> {
   bool _isSaving = false;
   Map<String, dynamic>? _userData;
 
+  int _totalDomba = 0;
+int _totalKandang = 0;
+int _totalScan = 0;
+bool _isStatsLoading = false;
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadStats();
   }
 
   @override
@@ -97,6 +103,61 @@ class _ProfilScreenState extends State<ProfilScreen> {
     _namaPeternakanController.text = user['nama_peternakan'] ?? '';
     _lokasiController.text = user['lokasi'] ?? '';
   }
+
+  Future<void> _loadStats() async {
+  if (mounted) {
+    setState(() => _isStatsLoading = true);
+  }
+
+  try {
+    final results = await Future.wait([
+      ApiService.fetchDombaStatistik(),
+      ApiService.fetchKandangStatistik(),
+      ApiService.fetchTotalScan(),
+    ]);
+
+    final dombaStats = Map<String, dynamic>.from(results[0] as Map);
+    final kandangStats = Map<String, dynamic>.from(results[1] as Map);
+    final totalScan = results[2] as int;
+
+    if (!mounted) return;
+
+    setState(() {
+      _totalDomba = _readInt(dombaStats, [
+        'total_domba',
+        'jumlah_domba',
+        'total',
+      ]);
+
+      _totalKandang = _readInt(kandangStats, [
+        'total_kandang',
+        'jumlah_kandang',
+        'total',
+      ]);
+
+      _totalScan = totalScan;
+      _isStatsLoading = false;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() => _isStatsLoading = false);
+
+    debugPrint('Gagal memuat statistik profil: $e');
+  }
+}
+int _readInt(Map<String, dynamic> data, List<String> keys) {
+  for (final key in keys) {
+    final value = data[key];
+
+    if (value is int) return value;
+
+    final parsed = int.tryParse(value?.toString() ?? '');
+    if (parsed != null) return parsed;
+  }
+
+  return 0;
+}
 
   // ─────────────────────────────────────────────
   // SAVE CHANGES
@@ -254,23 +315,29 @@ class _ProfilScreenState extends State<ProfilScreen> {
 
     return Scaffold(
       backgroundColor: beigeLight,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildProfileHeader(),
-            _buildStatsRow(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-              child: _buildAccountInfoForm(),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-              child: _buildLogoutButton(),
-            ),
-          ],
+body: RefreshIndicator(
+  onRefresh: () async {
+    await _loadUserData();
+    await _loadStats();
+  },
+  child: SingleChildScrollView(
+    physics: const AlwaysScrollableScrollPhysics(),
+    child: Column(
+      children: [
+        _buildProfileHeader(),
+        _buildStatsRow(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          child: _buildAccountInfoForm(),
         ),
-      ),
-    );
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          child: _buildLogoutButton(),
+        ),
+      ],
+    ),
+  ),
+),    );
   }
 
   // ── Profile Header ──
@@ -389,12 +456,20 @@ class _ProfilScreenState extends State<ProfilScreen> {
 
   // ── Stats Row ──
   Widget _buildStatsRow() {
-    final stats = [
-      {'value': '—', 'label': 'Domba'},
-      {'value': '—', 'label': 'Kandang'},
-      {'value': '—', 'label': 'Scan'},
-    ];
-
+final stats = [
+  {
+    'value': _isStatsLoading ? '...' : '$_totalDomba',
+    'label': 'Domba',
+  },
+  {
+    'value': _isStatsLoading ? '...' : '$_totalKandang',
+    'label': 'Kandang',
+  },
+  {
+    'value': _isStatsLoading ? '...' : '$_totalScan',
+    'label': 'Scan',
+  },
+];
     return Transform.translate(
       offset: const Offset(0, -28),
       child: Padding(

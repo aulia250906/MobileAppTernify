@@ -6,6 +6,9 @@ import numpy as np
 import pytesseract
 from rapidfuzz import process, fuzz
 
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+
 # ==================================================================
 # KNOWLEDGE BASE — Kamus istilah untuk koreksi teks OCR
 # ==================================================================

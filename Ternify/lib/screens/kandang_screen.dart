@@ -3,6 +3,8 @@ import '../models/kandang_model.dart';
 import '../repositories/kandang_repository.dart';
 import '../widgets/app_popup.dart';
 import 'data_domba_screen.dart';
+import '../models/domba_model.dart';
+import'../repositories/domba_repository.dart';
 
 class KandangScreen extends StatefulWidget {
   const KandangScreen({super.key});
@@ -24,6 +26,24 @@ class _KandangScreenState extends State<KandangScreen> {
   static const Color _whiteOpacity60 = Color(0x99FFFFFF);
   static const Color _blackOpacity05 = Color(0x0D000000);
   static const Color _blackOpacity06 = Color(0x0F000000);
+
+final DombaRepository _dombaRepo = DombaRepository();
+void _showAssignDombaSheet(Kandang kandang) {
+  showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _AssignDombaSheet(
+      kandang: kandang,
+      dombaRepo: _dombaRepo,
+      kandangRepo: _repo,
+    ),
+  ).then((result) {
+    if (result == true) {
+      _loadAll();
+    }
+  });
+}
 
   final KandangRepository _repo = KandangRepository();
 
@@ -369,13 +389,7 @@ class _KandangScreenState extends State<KandangScreen> {
                   const Color(0xFFEAE4D8),
                   navyDark,
                   Colors.transparent,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          DataDombaScreen(filterKandang: k.namaKandang),
-                    ),
-                  ),
+onTap: () => _showAssignDombaSheet(k),
                 ),
                 const SizedBox(width: 8),
                 _actionButton(
@@ -583,6 +597,279 @@ class _KandangScreenState extends State<KandangScreen> {
               ),
               child: const Text('Hapus'),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssignDombaSheet extends StatefulWidget {
+  final Kandang kandang;
+  final DombaRepository dombaRepo;
+  final KandangRepository kandangRepo;
+
+  const _AssignDombaSheet({
+    required this.kandang,
+    required this.dombaRepo,
+    required this.kandangRepo,
+  });
+
+  @override
+  State<_AssignDombaSheet> createState() => _AssignDombaSheetState();
+}
+
+class _AssignDombaSheetState extends State<_AssignDombaSheet> {
+  static const Color navyDark = Color(0xFF1A2B45);
+  static const Color beigeLight = Color(0xFFFAF7F2);
+  static const Color textMuted = Color(0xFF8A9BB0);
+
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _errorMessage;
+
+  List<Domba> _dombaList = [];
+  final Set<String> _selectedIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDomba();
+  }
+
+  Future<void> _loadDomba() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await widget.dombaRepo.fetchBelumKandang();
+
+      if (mounted) {
+        setState(() {
+          _dombaList = result;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_selectedIds.isEmpty) {
+      AppPopup.show(
+        context,
+        message: 'Pilih minimal 1 domba.',
+        isError: true,
+      );
+      return;
+    }
+
+    final sisaKapasitas = widget.kandang.kapasitas - widget.kandang.jumlahDomba;
+
+    if (_selectedIds.length > sisaKapasitas) {
+      AppPopup.show(
+        context,
+        message: 'Jumlah domba melebihi sisa kapasitas kandang.',
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      await widget.kandangRepo.assignDombaToKandang(
+        idKandang: widget.kandang.idKandang,
+        dombaIds: _selectedIds.toList(),
+      );
+
+      if (mounted) {
+        AppPopup.show(
+          context,
+          message: 'Domba berhasil dimasukkan ke kandang.',
+        );
+
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        AppPopup.show(
+          context,
+          message: e.toString(),
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final sisaKapasitas = widget.kandang.kapasitas - widget.kandang.jumlahDomba;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset + 20),
+      decoration: const BoxDecoration(
+        color: beigeLight,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 44,
+            height: 5,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD5CFBF),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Tambah Domba ke ${widget.kandang.namaKandang}',
+                  style: const TextStyle(
+                    fontFamily: 'Georgia',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: navyDark,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: _isSaving ? null : () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: navyDark),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Sisa kapasitas: $sisaKapasitas domba',
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: textMuted,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                    ? Center(
+                        child: Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      )
+                    : _dombaList.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Belum ada domba hasil scan yang belum masuk kandang.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: textMuted),
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: _dombaList.length,
+                            separatorBuilder: (_, __) => const Divider(
+                              height: 1,
+                              color: Color(0xFFE8E3DA),
+                            ),
+                            itemBuilder: (context, index) {
+                              final d = _dombaList[index];
+                              final selected = _selectedIds.contains(d.idDomba);
+
+                              return CheckboxListTile(
+                                value: selected,
+                                activeColor: navyDark,
+                                onChanged: _isSaving
+                                    ? null
+                                    : (value) {
+                                        setState(() {
+                                          if (value == true) {
+                                            _selectedIds.add(d.idDomba);
+                                          } else {
+                                            _selectedIds.remove(d.idDomba);
+                                          }
+                                        });
+                                      },
+                                title: Text(
+                                  d.earTag,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: navyDark,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${d.idBangsa ?? '-'} · ${d.jenisKelaminLabel}',
+                                  style: const TextStyle(color: textMuted),
+                                ),
+                              );
+                            },
+                          ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isSaving ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: navyDark,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      'Simpan ${_selectedIds.length} Domba',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
         ],
       ),
     );

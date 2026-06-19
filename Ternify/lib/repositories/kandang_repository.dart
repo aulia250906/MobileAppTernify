@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/kandang_model.dart';
 import '../services/api_service.dart';
+import '../models/domba_model.dart';
 
 class KandangRepository {
   /// GET /api/kandang — Daftar semua kandang
@@ -22,6 +23,31 @@ class KandangRepository {
       throw 'Tidak dapat terhubung ke server: $e';
     }
   }
+
+  Future<void> assignDombaToKandang({
+  required String idKandang,
+  required List<String> dombaIds,
+}) async {
+  try {
+    await ApiService.assignDombaToKandang(
+      idKandang: idKandang,
+      dombaIds: dombaIds,
+    );
+  } catch (e) {
+    if (e is String) rethrow;
+    throw e.toString();
+  }
+}
+
+Future<List<Domba>> fetchDombaByKandang(String idKandang) async {
+  try {
+    final data = await ApiService.fetchDombaByKandang(idKandang);
+    return data.map((e) => Domba.fromJson(e)).toList();
+  } catch (e) {
+    if (e is String) rethrow;
+    throw e.toString();
+  }
+}
 
   /// GET /api/kandang/statistik — Statistik kandang
   Future<Map<String, int>> fetchStatistik() async {

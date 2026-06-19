@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
+use App\Models\RiwayatKandang;
 
 class DombaController extends Controller
 {
@@ -18,9 +19,9 @@ class DombaController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = Domba::with(['induk', 'pejantan'])
-                      ->where('user_id', $request->user()->id);
-
+$query = Domba::with(['induk', 'pejantan', 'kandangAktif'])
+    ->where('user_id', $request->user()->id)
+    ->whereHas('kandangAktif');
         // Filter by jenis_kelamin
         if ($request->filled('jenis_kelamin')) {
             $query->where('jenis_kelamin', $request->jenis_kelamin);
@@ -48,8 +49,13 @@ class DombaController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'ear_tag'       => 'required|string|max:50|unique:domba,ear_tag',
-            'id_bangsa'     => 'nullable|string|max:50',
+'ear_tag' => [
+    'required',
+    'string',
+    'max:50',
+    Rule::unique('domba', 'ear_tag')
+        ->where('user_id', $request->user()->id),
+],            'id_bangsa'     => 'nullable|string|max:50',
             'jenis_kelamin' => 'required|in:jantan,betina',
             'tanggal_lahir' => 'nullable|date|before_or_equal:today',
             'id_induk'      => [
@@ -117,6 +123,69 @@ class DombaController extends Controller
             'data' => new DombaResource($domba),
         ]);
     }
+
+    public function storeFromScan(Request $request): JsonResponse
+{
+    $input = $request->all();
+
+    // Mapping hasil OCR ke field database
+    $input['id_bangsa'] = $input['id_bangsa']
+        ?? $input['ras']
+        ?? $input['jenis_domba']
+        ?? null;
+
+    if (isset($input['jenis_kelamin'])) {
+        $jk = strtolower(trim($input['jenis_kelamin']));
+
+        if (in_array($jk, ['jantan', 'male', 'laki-laki', 'laki laki'])) {
+            $input['jenis_kelamin'] = 'jantan';
+        } elseif (in_array($jk, ['betina', 'female', 'perempuan'])) {
+            $input['jenis_kelamin'] = 'betina';
+        }
+    }
+
+    $request->merge($input);
+
+    $validated = $request->validate([
+        'ear_tag' => [
+            'required',
+            'string',
+            'max:50',
+            Rule::unique('domba', 'ear_tag')
+                ->where('user_id', $request->user()->id),
+        ],
+        'id_bangsa' => 'nullable|string|max:50',
+        'jenis_kelamin' => 'required|in:jantan,betina',
+        'tanggal_lahir' => 'nullable|date',
+        'berat' => 'nullable|numeric|min:0|max:999.9',
+        'status' => 'nullable|in:Sehat,Bunting,Sakit',
+        'vaksinasi' => 'nullable|string|max:255',
+    ], [
+        'ear_tag.unique' => 'Ear tag sudah terdaftar pada akun ini.',
+    ]);
+
+    $validated['user_id'] = $request->user()->id;
+    $validated['status'] = $validated['status'] ?? 'Sehat';
+
+    $domba = Domba::create($validated);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Data domba hasil scan berhasil disimpan.',
+        'data' => new DombaResource($domba),
+    ], 201);
+}
+
+public function belumKandang(Request $request): AnonymousResourceCollection
+{
+    $domba = Domba::with(['induk', 'pejantan'])
+        ->where('user_id', $request->user()->id)
+        ->whereDoesntHave('kandangAktif')
+        ->latest()
+        ->get();
+
+    return DombaResource::collection($domba);
+}
 
     /**
      * PUT /api/domba/{id}
@@ -236,38 +305,40 @@ class DombaController extends Controller
      * GET /api/domba/statistik
      * Ringkasan statistik domba milik user untuk dashboard
      */
-    public function statistik(Request $request): JsonResponse
-    {
-        $userId = $request->user()->id;
+public function statistik(Request $request): JsonResponse
+{
+    $userId = $request->user()->id;
 
-        $total       = Domba::where('user_id', $userId)->count();
-        $totalJantan = Domba::where('user_id', $userId)->where('jenis_kelamin', 'jantan')->count();
-        $totalBetina = Domba::where('user_id', $userId)->where('jenis_kelamin', 'betina')->count();
+    $baseQuery = Domba::where('user_id', $userId)
+        ->whereHas('kandangAktif');
 
-        // Status kesehatan
-        $sehat   = Domba::where('user_id', $userId)->where('status', 'Sehat')->count();
-        $bunting = Domba::where('user_id', $userId)->where('status', 'Bunting')->count();
-        $sakit   = Domba::where('user_id', $userId)->where('status', 'Sakit')->count();
+    $total = (clone $baseQuery)->count();
+    $totalJantan = (clone $baseQuery)->where('jenis_kelamin', 'jantan')->count();
+    $totalBetina = (clone $baseQuery)->where('jenis_kelamin', 'betina')->count();
 
-        // 5 domba terbaru milik user
-        $terbaru = Domba::with(['induk', 'pejantan'])
-                        ->where('user_id', $userId)
-                        ->latest()
-                        ->take(5)
-                        ->get();
+    $sehat = (clone $baseQuery)->where('status', 'Sehat')->count();
+    $bunting = (clone $baseQuery)->where('status', 'Bunting')->count();
+    $sakit = (clone $baseQuery)->where('status', 'Sakit')->count();
 
-        return response()->json([
-            'data' => [
-                'total_domba'   => $total,
-                'total_jantan'  => $totalJantan,
-                'total_betina'  => $totalBetina,
-                'status' => [
-                    'sehat'   => $sehat,
-                    'bunting' => $bunting,
-                    'sakit'   => $sakit,
-                ],
-                'domba_terbaru' => DombaResource::collection($terbaru),
+    $terbaru = Domba::with(['induk', 'pejantan'])
+        ->where('user_id', $userId)
+        ->whereHas('kandangAktif')
+        ->latest()
+        ->take(5)
+        ->get();
+
+    return response()->json([
+        'data' => [
+            'total_domba' => $total,
+            'total_jantan' => $totalJantan,
+            'total_betina' => $totalBetina,
+            'status' => [
+                'sehat' => $sehat,
+                'bunting' => $bunting,
+                'sakit' => $sakit,
             ],
-        ]);
-    }
+            'domba_terbaru' => DombaResource::collection($terbaru),
+        ],
+    ]);
+}
 }

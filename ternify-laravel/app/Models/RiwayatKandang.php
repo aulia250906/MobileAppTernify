@@ -13,8 +13,12 @@ class RiwayatKandang extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id_riwayat_kandang', 'id_kandang', 'id_domba',
-        'tanggal_masuk', 'tanggal_keluar',
+        'id_riwayat_kandang', 
+        'user_id', 
+        'id_kandang', 
+        'id_domba',
+        'tanggal_masuk', 
+        'tanggal_keluar',
     ];
 
     protected $casts = [

@@ -29,12 +29,18 @@ class _MainShellState extends State<MainShell> {
 
   Widget _buildPage(int index) {
     switch (index) {
-      case 0: return const DashboardScreen();
-      case 1: return const RiwayatScanScreen();
-      case 2: return ScanCatatanScreen(key: ScanCatatanScreen.globalKey);
-      case 3: return const KandangScreen();
-      case 4: return const ProfilScreen();
-      default: return const SizedBox.shrink();
+      case 0:
+        return const DashboardScreen();
+      case 1:
+        return const RiwayatScanScreen();
+      case 2:
+        return ScanCatatanScreen(key: ScanCatatanScreen.globalKey);
+      case 3:
+        return const KandangScreen();
+      case 4:
+        return const ProfilScreen();
+      default:
+        return const SizedBox.shrink();
     }
   }
 
@@ -64,11 +70,27 @@ class _MainShellState extends State<MainShell> {
 
   Widget _buildBottomNav() {
     final items = [
-      {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'label': 'Dashboard'},
-      {'icon': Icons.history_outlined, 'activeIcon': Icons.history, 'label': 'Riwayat'},
+      {
+        'icon': Icons.home_outlined,
+        'activeIcon': Icons.home,
+        'label': 'Dashboard',
+      },
+      {
+        'icon': Icons.history_outlined,
+        'activeIcon': Icons.history,
+        'label': 'Riwayat',
+      },
       null, // FAB placeholder
-      {'icon': Icons.grid_view_outlined, 'activeIcon': Icons.grid_view, 'label': 'Kandang'},
-      {'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': 'Profil'},
+      {
+        'icon': Icons.grid_view_outlined,
+        'activeIcon': Icons.grid_view,
+        'label': 'Kandang',
+      },
+      {
+        'icon': Icons.person_outline,
+        'activeIcon': Icons.person,
+        'label': 'Profil',
+      },
     ];
 
     return Container(
@@ -111,8 +133,9 @@ class _MainShellState extends State<MainShell> {
                         style: TextStyle(
                           fontSize: 10,
                           color: isSelected ? navyDark : Colors.grey.shade400,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ],
@@ -167,7 +190,11 @@ class _MainShellState extends State<MainShell> {
               ? Border.all(color: _whiteOpacity30, width: 2)
               : null,
         ),
-        child: const Icon(Icons.crop_free_rounded, color: Colors.white, size: 26),
+        child: const Icon(
+          Icons.crop_free_rounded,
+          color: Colors.white,
+          size: 26,
+        ),
       ),
     );
   }

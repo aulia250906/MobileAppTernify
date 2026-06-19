@@ -17,7 +17,7 @@ class ApiService {
     if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       return "http://127.0.0.1:8000/api";
     }
-    return "http://192.168.18.227:8000/api"; // Untuk Android Emulator. Ubah ke "http://192.168.0.178:8000/api" jika menggunakan HP Fisik.
+    return "http://192.168.1.13:8000/api"; // Untuk Android Emulator. Ubah ke "http://192.168.0.178:8000/api" jika menggunakan HP Fisik.
   }
 
   static const String _tokenKey = 'auth_token';
@@ -253,6 +253,7 @@ static Future<Map<String, dynamic>> forgotPasswordReset({
     return {'success': false, 'message': 'Koneksi gagal: $e'};
   }
 }
+
 
 
 
@@ -522,4 +523,195 @@ static Future<bool> validateSession() async {
 
     throw Exception(decoded['message'] ?? 'Gagal mengambil statistik domba');
   }
+
+
+    // ─────────────────────────────────────────────
+  // SCAN LOG / RIWAYAT DIGITALISASI API
+  // ─────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> createScanLog({
+    required Map<String, dynamic> payload,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/scan-logs'),
+        headers: await authHeaders(),
+        body: jsonEncode(payload),
+      );
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded;
+      }
+
+      return {
+        'success': false,
+        'message': decoded['message'] ?? 'Gagal menyimpan riwayat scan',
+        'errors': decoded['errors'],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Koneksi gagal: $e',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchScanLogs({
+    String? search,
+    String filter = 'semua',
+    int page = 1,
+    int perPage = 10,
+  }) async {
+    try {
+      final query = <String, String>{
+        'page': page.toString(),
+        'per_page': perPage.toString(),
+      };
+
+      if (search != null && search.trim().isNotEmpty) {
+        query['search'] = search.trim();
+      }
+
+      if (filter != 'semua') {
+        query['filter'] = filter;
+      }
+
+      final uri = Uri.parse('$baseUrl/scan-logs').replace(
+        queryParameters: query,
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await authHeaders(),
+      );
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded;
+      }
+
+      return {
+        'success': false,
+        'message': decoded['message'] ?? 'Gagal mengambil riwayat scan',
+        'data': [],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Koneksi gagal: $e',
+        'data': [],
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchScanLogDetail(String idScan) async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/scan-logs/$idScan'),
+      headers: await authHeaders(),
+    );
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return decoded;
+    }
+
+    return {
+      'success': false,
+      'message': decoded['message'] ?? 'Gagal mengambil detail scan',
+    };
+  } catch (e) {
+    return {
+      'success': false,
+      'message': 'Koneksi gagal: $e',
+    };
+  }
+}
+
+static Future<Map<String, dynamic>> createDombaFromScan(
+  Map<String, dynamic> payload,
+) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/domba/from-scan'),
+    headers: await authHeaders(),
+    body: jsonEncode(payload),
+  );
+
+  final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    return decoded;
+  }
+
+  throw Exception(decoded['message'] ?? 'Gagal menyimpan domba hasil scan');
+}
+
+static Future<List<Map<String, dynamic>>> fetchDombaBelumKandang() async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/domba/belum-kandang'),
+    headers: await authHeaders(),
+  );
+
+  final decoded = jsonDecode(response.body);
+
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    final data = decoded['data'];
+
+    if (data is List) {
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+
+    return [];
+  }
+
+  throw Exception(decoded['message'] ?? 'Gagal mengambil domba belum kandang');
+}
+
+static Future<Map<String, dynamic>> assignDombaToKandang({
+  required String idKandang,
+  required List<String> dombaIds,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/kandang/$idKandang/assign-domba'),
+    headers: await authHeaders(),
+    body: jsonEncode({
+      'domba_ids': dombaIds,
+    }),
+  );
+
+  final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    return decoded;
+  }
+
+  throw Exception(decoded['message'] ?? 'Gagal memasukkan domba ke kandang');
+}
+
+static Future<List<Map<String, dynamic>>> fetchDombaByKandang(
+  String idKandang,
+) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/kandang/$idKandang/domba'),
+    headers: await authHeaders(),
+  );
+
+  final decoded = jsonDecode(response.body);
+
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    final data = decoded['data'];
+
+    if (data is List) {
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+
+    return [];
+  }
+
+  throw Exception(decoded['message'] ?? 'Gagal mengambil domba kandang');
+}
 }

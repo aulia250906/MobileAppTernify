@@ -61,6 +61,15 @@ class DombaRepository {
     }
   }
 
+  Future<void> createDombaFromScan(Map<String, dynamic> payload) async {
+  await ApiService.createDombaFromScan(payload);
+}
+
+Future<List<Domba>> fetchBelumKandang() async {
+  final data = await ApiService.fetchDombaBelumKandang();
+  return data.map((e) => Domba.fromJson(e)).toList();
+}
+
   // ─────────────────────────────────────────────
   // UPDATE DOMBA
   // Untuk tahap awal: update langsung ke server, lalu refresh lokal.

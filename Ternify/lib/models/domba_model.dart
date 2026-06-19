@@ -8,6 +8,9 @@ class Domba {
   final String? idPejantan;
   final Map<String, dynamic>? induk;
   final Map<String, dynamic>? pejantan;
+  final double? berat;
+final String? status;
+final String? vaksinasi;
   final String? createdAt;
   final String? updatedAt;
 
@@ -21,6 +24,9 @@ class Domba {
     this.idPejantan,
     this.induk,
     this.pejantan,
+    this.berat,
+this.status,
+this.vaksinasi,
     this.createdAt,
     this.updatedAt,
   });
@@ -40,6 +46,11 @@ class Domba {
       pejantan: json['pejantan'] != null
           ? Map<String, dynamic>.from(json['pejantan'])
           : null,
+          berat: json['berat'] != null
+    ? double.tryParse(json['berat'].toString())
+    : null,
+status: json['status'],
+vaksinasi: json['vaksinasi'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
     );
@@ -52,6 +63,9 @@ class Domba {
     'tanggal_lahir': tanggalLahir,
     'id_induk': idInduk,
     'id_pejantan': idPejantan,
+    'berat': berat,
+    'status': status,
+    'vaksinasi': vaksinasi,
   };
 
   /// Nama induk dari relasi (jika dimuat)
