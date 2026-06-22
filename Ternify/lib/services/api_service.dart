@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io' show Platform;
+// import 'dart:io' show Platform;
 import 'package:google_sign_in/google_sign_in.dart';
 
 class ApiService {
@@ -10,14 +10,19 @@ class ApiService {
   // Emulator Android  : http://10.0.2.2:8000/api
   // Device fisik      : http://192.168.x.x:8000/api
   // Production        : https://domain-kamu.com/api
-  static String get baseUrl {
-    if (kIsWeb) {
-      return "http://localhost:8000/api";
-    }
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-      return "http://127.0.0.1:8000/api";
-    }
-    return "http://192.168.1.13:8000/api"; // Untuk Android Emulator. Ubah ke "http://192.168.0.178:8000/api" jika menggunakan HP Fisik.
+ static String get baseUrl {
+    // if (kIsWeb) {
+    //   return "http://localhost:8080/api"; //
+    // }
+
+    // // 2. GANTI pengecekan Platform menjadi seperti ini:
+    // if (defaultTargetPlatform == TargetPlatform.windows ||
+    //     defaultTargetPlatform == TargetPlatform.macOS ||
+    //     defaultTargetPlatform == TargetPlatform.linux) {
+    //   return "http://127.0.0.1:8080/api";
+    
+
+    return "http://192.168.18.59:8080/api";
   }
 
   static const String _tokenKey = 'auth_token';

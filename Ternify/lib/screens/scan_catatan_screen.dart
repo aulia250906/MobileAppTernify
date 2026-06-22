@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/ocr_api_service.dart';
 import '../services/api_service.dart';
 import '../widgets/app_popup.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ScanCatatanScreen extends StatefulWidget {
   const ScanCatatanScreen({super.key});
@@ -521,27 +522,40 @@ Map<String, dynamic> _buildDombaPayloadFromScan(Map<String, dynamic> details) {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFFE8E3DA)),
             ),
-            child: _pickedImage != null
+child: _pickedImage != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(9),
-                    child: Image.file(
-                      File(_pickedImage!.path),
-                      width: 72,
-                      height: 72,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.image_outlined,
-                        size: 28,
-                        color: Color(0xFF8A9BB0),
-                      ),
-                    ),
+                    child: kIsWeb
+                        // Gunakan Image.network jika berjalan di Web (Chrome)
+                        ? Image.network(
+                            _pickedImage!.path,
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const Icon(
+                              Icons.image_outlined,
+                              size: 28,
+                              color: Color(0xFF8A9BB0),
+                            ),
+                          )
+                        // Gunakan Image.file jika berjalan di Android fisik
+                        : Image.file(
+                            File(_pickedImage!.path),
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const Icon(
+                              Icons.image_outlined,
+                              size: 28,
+                              color: Color(0xFF8A9BB0),
+                            ),
+                          ),
                   )
                 : const Icon(
                     Icons.image_outlined,
                     size: 28,
                     color: Color(0xFF8A9BB0),
-                  ),
-          ),
+                  ),          ),
           const SizedBox(width: 12),
           // Info + buttons
           Expanded(

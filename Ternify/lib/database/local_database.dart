@@ -1,5 +1,7 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb; // Tambahan untuk deteksi Web
 
 class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._init();
@@ -8,7 +10,10 @@ class LocalDatabase {
 
   LocalDatabase._init();
 
-  Future<Database> get database async {
+  // Ubah menjadi nullable (Database?) agar bisa mereturn null saat di Web
+  Future<Database?> get database async {
+    if (kIsWeb) return null; // Cegah inisialisasi sqflite jika di Web
+
     if (_database != null) return _database!;
     _database = await _initDB('ternify_local.db');
     return _database!;
@@ -55,7 +60,9 @@ class LocalDatabase {
   // INSERT DATA LOKAL
   // ─────────────────────────────────────────────
   Future<int> insertLocalDomba(Map<String, dynamic> data) async {
-    final db = await database;
+    if (kIsWeb) return 0; // Bypass untuk Web
+
+    final db = (await database)!;
     final now = DateTime.now().toIso8601String();
 
     return await db.insert('local_domba', {
@@ -81,7 +88,9 @@ class LocalDatabase {
     String? search,
     String? jenisKelamin,
   }) async {
-    final db = await database;
+    if (kIsWeb) return []; // Kembalikan list kosong agar UI tidak error di Web
+
+    final db = (await database)!;
 
     final where = <String>['deleted_at IS NULL'];
     final args = <Object?>[];
@@ -109,7 +118,9 @@ class LocalDatabase {
   // AMBIL DATA YANG BELUM SYNC
   // ─────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getPendingDomba() async {
-    final db = await database;
+    if (kIsWeb) return []; // Bypass untuk Web
+
+    final db = (await database)!;
 
     return await db.query(
       'local_domba',
@@ -123,7 +134,9 @@ class LocalDatabase {
   // UPSERT DATA DARI SERVER KE LOKAL
   // ─────────────────────────────────────────────
   Future<void> upsertDombaFromServer(Map<String, dynamic> data) async {
-    final db = await database;
+    if (kIsWeb) return; // Bypass untuk Web
+
+    final db = (await database)!;
     final now = DateTime.now().toIso8601String();
 
     final serverId = data['id_domba'];
@@ -171,7 +184,9 @@ class LocalDatabase {
     required int localId,
     required String serverId,
   }) async {
-    final db = await database;
+    if (kIsWeb) return; // Bypass untuk Web
+
+    final db = (await database)!;
     final now = DateTime.now().toIso8601String();
 
     await db.update(
@@ -194,7 +209,9 @@ class LocalDatabase {
     required String serverId,
     required Map<String, dynamic> data,
   }) async {
-    final db = await database;
+    if (kIsWeb) return; // Bypass untuk Web
+
+    final db = (await database)!;
     final now = DateTime.now().toIso8601String();
 
     await db.update(
@@ -218,7 +235,9 @@ class LocalDatabase {
   // HAPUS LOKAL
   // ─────────────────────────────────────────────
   Future<void> deleteLocalDombaByServerId(String serverId) async {
-    final db = await database;
+    if (kIsWeb) return; // Bypass untuk Web
+
+    final db = (await database)!;
 
     await db.delete(
       'local_domba',
@@ -231,7 +250,9 @@ class LocalDatabase {
   // RESET DATA LOKAL
   // ─────────────────────────────────────────────
   Future<void> clearLocalDomba() async {
-    final db = await database;
+    if (kIsWeb) return; // Bypass untuk Web
+
+    final db = (await database)!;
     await db.delete('local_domba');
   }
 }

@@ -36,9 +36,9 @@ class _ProfilScreenState extends State<ProfilScreen> {
   Map<String, dynamic>? _userData;
 
   int _totalDomba = 0;
-int _totalKandang = 0;
-int _totalScan = 0;
-bool _isStatsLoading = false;
+  int _totalKandang = 0;
+  int _totalScan = 0;
+  bool _isStatsLoading = false;
 
   @override
   void initState() {
@@ -105,59 +105,60 @@ bool _isStatsLoading = false;
   }
 
   Future<void> _loadStats() async {
-  if (mounted) {
-    setState(() => _isStatsLoading = true);
-  }
+    if (mounted) {
+      setState(() => _isStatsLoading = true);
+    }
 
-  try {
-    final results = await Future.wait([
-      ApiService.fetchDombaStatistik(),
-      ApiService.fetchKandangStatistik(),
-      ApiService.fetchTotalScan(),
-    ]);
-
-    final dombaStats = Map<String, dynamic>.from(results[0] as Map);
-    final kandangStats = Map<String, dynamic>.from(results[1] as Map);
-    final totalScan = results[2] as int;
-
-    if (!mounted) return;
-
-    setState(() {
-      _totalDomba = _readInt(dombaStats, [
-        'total_domba',
-        'jumlah_domba',
-        'total',
+    try {
+      final results = await Future.wait([
+        ApiService.fetchDombaStatistik(),
+        // ApiService.fetchKandangStatistik(),
+        // ApiService.fetchTotalScan(),
       ]);
 
-      _totalKandang = _readInt(kandangStats, [
-        'total_kandang',
-        'jumlah_kandang',
-        'total',
-      ]);
+      final dombaStats = Map<String, dynamic>.from(results[0] as Map);
+      final kandangStats = Map<String, dynamic>.from(results[1] as Map);
+      final totalScan = results[2] as int;
 
-      _totalScan = totalScan;
-      _isStatsLoading = false;
-    });
-  } catch (e) {
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isStatsLoading = false);
+      setState(() {
+        _totalDomba = _readInt(dombaStats, [
+          'total_domba',
+          'jumlah_domba',
+          'total',
+        ]);
 
-    debugPrint('Gagal memuat statistik profil: $e');
+        _totalKandang = _readInt(kandangStats, [
+          'total_kandang',
+          'jumlah_kandang',
+          'total',
+        ]);
+
+        _totalScan = totalScan;
+        _isStatsLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _isStatsLoading = false);
+
+      debugPrint('Gagal memuat statistik profil: $e');
+    }
   }
-}
-int _readInt(Map<String, dynamic> data, List<String> keys) {
-  for (final key in keys) {
-    final value = data[key];
 
-    if (value is int) return value;
+  int _readInt(Map<String, dynamic> data, List<String> keys) {
+    for (final key in keys) {
+      final value = data[key];
 
-    final parsed = int.tryParse(value?.toString() ?? '');
-    if (parsed != null) return parsed;
+      if (value is int) return value;
+
+      final parsed = int.tryParse(value?.toString() ?? '');
+      if (parsed != null) return parsed;
+    }
+
+    return 0;
   }
-
-  return 0;
-}
 
   // ─────────────────────────────────────────────
   // SAVE CHANGES
@@ -315,29 +316,30 @@ int _readInt(Map<String, dynamic> data, List<String> keys) {
 
     return Scaffold(
       backgroundColor: beigeLight,
-body: RefreshIndicator(
-  onRefresh: () async {
-    await _loadUserData();
-    await _loadStats();
-  },
-  child: SingleChildScrollView(
-    physics: const AlwaysScrollableScrollPhysics(),
-    child: Column(
-      children: [
-        _buildProfileHeader(),
-        _buildStatsRow(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          child: _buildAccountInfoForm(),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _loadUserData();
+          await _loadStats();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              _buildProfileHeader(),
+              _buildStatsRow(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: _buildAccountInfoForm(),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                child: _buildLogoutButton(),
+              ),
+            ],
+          ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-          child: _buildLogoutButton(),
-        ),
-      ],
-    ),
-  ),
-),    );
+      ),
+    );
   }
 
   // ── Profile Header ──
@@ -456,20 +458,11 @@ body: RefreshIndicator(
 
   // ── Stats Row ──
   Widget _buildStatsRow() {
-final stats = [
-  {
-    'value': _isStatsLoading ? '...' : '$_totalDomba',
-    'label': 'Domba',
-  },
-  {
-    'value': _isStatsLoading ? '...' : '$_totalKandang',
-    'label': 'Kandang',
-  },
-  {
-    'value': _isStatsLoading ? '...' : '$_totalScan',
-    'label': 'Scan',
-  },
-];
+    final stats = [
+      {'value': _isStatsLoading ? '...' : '$_totalDomba', 'label': 'Domba'},
+      {'value': _isStatsLoading ? '...' : '$_totalKandang', 'label': 'Kandang'},
+      {'value': _isStatsLoading ? '...' : '$_totalScan', 'label': 'Scan'},
+    ];
     return Transform.translate(
       offset: const Offset(0, -28),
       child: Padding(

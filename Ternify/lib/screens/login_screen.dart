@@ -63,8 +63,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _fieldErrors.clear();
       if (email.isEmpty) _fieldErrors['login_email'] = 'Email wajib diisi';
-      if (password.isEmpty)
+      if (password.isEmpty) {
         _fieldErrors['login_password'] = 'Kata sandi wajib diisi';
+      }
     });
     if (_fieldErrors.isNotEmpty) return;
 
@@ -75,23 +76,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-   if (result['success'] == true) {
-  _showSnackbar('Registrasi berhasil. Silakan login terlebih dahulu.');
-
-  setState(() {
-    _selectedTab = 0;
-    _emailController.text = email;
-    _passwordController.clear();
-
-    _namaController.clear();
-    _emailDaftarController.clear();
-    _passwordDaftarController.clear();
-    _konfirmasiPasswordController.clear();
-    _fieldErrors.clear();
-  });
-}else {
+if (result['success'] == true) {
+      // Jika login berhasil, langsung arahkan ke Dashboard
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    } else {
       _showSnackbar(result['message'] ?? 'Login gagal', isError: true);
     }
+  
   }
 
   Future<void> _handleGoogleLogin() async {
@@ -120,10 +111,12 @@ class _LoginScreenState extends State<LoginScreen> {
       _fieldErrors.clear();
       if (nama.isEmpty) _fieldErrors['reg_nama'] = 'Nama lengkap wajib diisi';
       if (email.isEmpty) _fieldErrors['reg_email'] = 'Email wajib diisi';
-      if (password.isEmpty)
+      if (password.isEmpty) {
         _fieldErrors['reg_password'] = 'Kata sandi wajib diisi';
-      if (konfirm.isEmpty)
+      }
+      if (konfirm.isEmpty) {
         _fieldErrors['reg_konfirm'] = 'Konfirmasi kata sandi wajib diisi';
+      }
     });
     if (_fieldErrors.isNotEmpty) return;
 
@@ -153,8 +146,22 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (result['success'] == true) {
-      Navigator.pushReplacementNamed(context, '/dashboard');
+if (result['success'] == true) {
+      // Jika register berhasil, munculkan alert sukses
+      _showSnackbar('Registrasi berhasil. Silakan login terlebih dahulu.');
+
+      // Pindahkan user kembali ke tab Login (index 0) dan bersihkan form
+      setState(() {
+        _selectedTab = 0; 
+        _emailController.text = email; // Memasukkan email yang baru didaftarkan secara otomatis
+        _passwordController.clear();
+
+        _namaController.clear();
+        _emailDaftarController.clear();
+        _passwordDaftarController.clear();
+        _konfirmasiPasswordController.clear();
+        _fieldErrors.clear();
+      });
     } else {
       // Tangani error validasi dari Laravel
       final errors = result['errors'];
@@ -165,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _showSnackbar(result['message'] ?? 'Registrasi gagal', isError: true);
       }
     }
-  }
+    }
 
   void _showSnackbar(String message, {bool isError = false}) {
     AppPopup.show(context, message: message, isError: isError);

@@ -240,7 +240,7 @@ void _showAssignDombaSheet(Kandang kandang) {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: statsDisplay.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
           final isFirst = i == 0;
           return Container(
@@ -802,7 +802,7 @@ class _AssignDombaSheetState extends State<_AssignDombaSheet> {
                           )
                         : ListView.separated(
                             itemCount: _dombaList.length,
-                            separatorBuilder: (_, __) => const Divider(
+                            separatorBuilder: (_, _) => const Divider(
                               height: 1,
                               color: Color(0xFFE8E3DA),
                             ),

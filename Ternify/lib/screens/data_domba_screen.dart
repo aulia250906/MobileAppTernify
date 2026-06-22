@@ -424,7 +424,7 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: cards.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
           final c = cards[i];
           final isActive = c['active'] as bool;
@@ -498,7 +498,7 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           final label = filters[i];
           final isActive =
@@ -1597,7 +1597,7 @@ class _DombaFormModalState extends State<_DombaFormModal>
         ],
       ),
       child: DropdownButtonFormField<T>(
-        value: value,
+        initialValue: value,
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,

@@ -362,7 +362,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: stats.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
             itemBuilder: (context, i) {
               final s = stats[i];
               return GestureDetector(
