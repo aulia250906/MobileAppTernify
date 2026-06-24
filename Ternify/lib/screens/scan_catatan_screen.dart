@@ -183,54 +183,126 @@ Future<void> _saveScanResult() async {
     'detail_data': details,
   };
 
-  final isDataDomba =
-    details.containsKey('ear_tag') || formType.toLowerCase().contains('domba');
+  // ── Detect type: Rekam Medis or Data Domba ──
 
-if (isDataDomba) {
-  final dombaPayload = _buildDombaPayloadFromScan(details);
+  final isRekamMedis = _isRekamMedisForm(formType, details);
+  final isDataDomba = !isRekamMedis &&
+      (details.containsKey('ear_tag') || formType.toLowerCase().contains('domba'));
 
-  if (dombaPayload['ear_tag'] == null ||
-      dombaPayload['ear_tag'].toString().isEmpty ||
-      dombaPayload['jenis_kelamin'] == null) {
-    setState(() {
-      _isSaving = false;
-    });
+  try {
+    // Handle Rekam Medis scan
+    if (isRekamMedis) {
+      final earTag = details['ear_tag']?.toString().trim();
 
+      if (earTag == null || earTag.isEmpty) {
+        setState(() => _isSaving = false);
+        AppPopup.show(
+          context,
+          message: 'Ear tag tidak ditemukan pada data rekam medis. Pastikan ear tag domba tertera pada catatan.',
+          isError: true,
+        );
+        return;
+      }
+
+      final medisPayload = _buildRekamMedisPayloadFromScan(details);
+      await ApiService.createRekamMedis(medisPayload);
+    }
+
+    // Handle Data Domba scan
+    if (isDataDomba) {
+      final dombaPayload = _buildDombaPayloadFromScan(details);
+
+      if (dombaPayload['ear_tag'] == null ||
+          dombaPayload['ear_tag'].toString().isEmpty ||
+          dombaPayload['jenis_kelamin'] == null) {
+        setState(() => _isSaving = false);
+
+        AppPopup.show(
+          context,
+          message: 'Data domba belum lengkap. Ear tag dan jenis kelamin wajib ada.',
+          isError: true,
+        );
+        return;
+      }
+
+      await ApiService.createDombaFromScan(dombaPayload);
+    }
+
+    // Always save to scan log
+    final response = await ApiService.createScanLog(payload: payload);
+
+    if (!mounted) return;
+
+    setState(() => _isSaving = false);
+
+    if (response['success'] == true) {
+      setState(() => _isSaved = true);
+
+      final successMsg = isRekamMedis
+          ? 'Rekam medis berhasil disimpan untuk domba ${details['ear_tag']}'
+          : 'Hasil scan berhasil disimpan ke riwayat';
+
+      AppPopup.show(context, message: successMsg);
+    } else {
+      AppPopup.show(
+        context,
+        message: response['message']?.toString() ?? 'Gagal menyimpan hasil scan',
+        isError: true,
+      );
+    }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => _isSaving = false);
     AppPopup.show(
       context,
-      message: 'Data domba belum lengkap. Ear tag dan jenis kelamin wajib ada.',
+      message: e.toString(),
       isError: true,
     );
-    return;
   }
-
-  await ApiService.createDombaFromScan(dombaPayload);
 }
 
-  final response = await ApiService.createScanLog(payload: payload);
-
-  if (!mounted) return;
-
-  setState(() {
-    _isSaving = false;
-  });
-
-  if (response['success'] == true) {
-    setState(() {
-      _isSaved = true;
-    });
-
-    AppPopup.show(
-      context,
-      message: 'Hasil scan berhasil disimpan ke riwayat',
-    );
-  } else {
-    AppPopup.show(
-      context,
-      message: response['message']?.toString() ?? 'Gagal menyimpan hasil scan',
-      isError: true,
-    );
+/// Detect if scan result is a rekam medis form
+bool _isRekamMedisForm(String formType, Map<String, dynamic> details) {
+  final lc = formType.toLowerCase();
+  if (lc.contains('rekam_medis') || lc.contains('medis') || lc.contains('medical')) {
+    return true;
   }
+
+  // Also detect by content: if it has medical-specific fields
+  const medicalKeys = ['gejala', 'diagnosa', 'tindakan', 'dosis_obat', 'suhu_tubuh', 'status_kondisi', 'obat'];
+  final matchCount = medicalKeys.where((k) => details.containsKey(k)).length;
+  return matchCount >= 2; // at least 2 medical fields present
+}
+
+/// Build rekam medis payload from OCR scan details
+Map<String, dynamic> _buildRekamMedisPayloadFromScan(Map<String, dynamic> details) {
+  double? parseNumeric(dynamic value) {
+    if (value == null) return null;
+    final cleaned = value
+        .toString()
+        .replaceAll(RegExp(r'[^\d.,]'), '')
+        .replaceAll(',', '.')
+        .trim();
+    return double.tryParse(cleaned);
+  }
+
+  return {
+    'ear_tag': details['ear_tag']?.toString().trim(),
+    'tanggal_pemeriksaan': details['tanggal_pemeriksaan'] ??
+        details['tanggal'] ??
+        _todayForApi(),
+    'berat': parseNumeric(details['berat']),
+    'suhu_tubuh': parseNumeric(details['suhu_tubuh'] ?? details['suhu']),
+    'status_kesehatan': details['status_kondisi'] ??
+        details['status_kesehatan'] ??
+        details['status'] ??
+        details['kondisi'],
+    'vaksinasi': details['vaksinasi'],
+    'obat': details['dosis_obat'] ?? details['obat'] ?? details['tindakan'],
+    'catatan': details['catatan'] ??
+        details['diagnosa'] ??
+        details['gejala'],
+  };
 }
 
 Map<String, dynamic> _buildDombaPayloadFromScan(Map<String, dynamic> details) {
@@ -275,6 +347,7 @@ Map<String, dynamic> _buildDombaPayloadFromScan(Map<String, dynamic> details) {
     'vaksinasi': details['vaksinasi'],
   };
 }
+
 
 
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/kandang_model.dart';
+import '../models/rekam_medis_model.dart';
+import '../models/perkawinan_model.dart';
 import '../repositories/kandang_repository.dart';
+import '../services/api_service.dart';
 import '../widgets/app_popup.dart';
-import 'data_domba_screen.dart';
+
 import '../models/domba_model.dart';
 import'../repositories/domba_repository.dart';
 
@@ -42,6 +45,26 @@ void _showAssignDombaSheet(Kandang kandang) {
     if (result == true) {
       _loadAll();
     }
+  });
+}
+
+void _showDombaKandangSheet(Kandang kandang) {
+  showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _DombaKandangSheet(
+      kandang: kandang,
+      kandangRepo: _repo,
+      dombaRepo: _dombaRepo,
+      onAddMore: () {
+        Navigator.pop(context);
+        _showAssignDombaSheet(kandang);
+      },
+    ),
+  ).then((_) {
+    // Always reload to sync domba counts after management
+    _loadAll();
   });
 }
 
@@ -389,7 +412,7 @@ void _showAssignDombaSheet(Kandang kandang) {
                   const Color(0xFFEAE4D8),
                   navyDark,
                   Colors.transparent,
-onTap: () => _showAssignDombaSheet(k),
+                onTap: () => _showDombaKandangSheet(k),
                 ),
                 const SizedBox(width: 8),
                 _actionButton(
@@ -871,6 +894,1403 @@ class _AssignDombaSheetState extends State<_AssignDombaSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Domba Kandang Sheet (Kelola Domba di Kandang) ─────────────────────────────
+
+class _DombaKandangSheet extends StatefulWidget {
+  final Kandang kandang;
+  final KandangRepository kandangRepo;
+  final DombaRepository dombaRepo;
+  final VoidCallback onAddMore;
+
+  const _DombaKandangSheet({
+    required this.kandang,
+    required this.kandangRepo,
+    required this.dombaRepo,
+    required this.onAddMore,
+  });
+
+  @override
+  State<_DombaKandangSheet> createState() => _DombaKandangSheetState();
+}
+
+class _DombaKandangSheetState extends State<_DombaKandangSheet> {
+  static const Color navyDark = Color(0xFF1A2B45);
+  static const Color beigeLight = Color(0xFFFAF7F2);
+  static const Color textMuted = Color(0xFF8A9BB0);
+  static const Color redAccent = Color(0xFFD94F4F);
+
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<Domba> _dombaList = [];
+  bool _dataChanged = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDomba();
+  }
+
+  Future<void> _loadDomba() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await widget.kandangRepo.fetchDombaByKandang(
+        widget.kandang.idKandang,
+      );
+      if (mounted) {
+        setState(() => _dombaList = result);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _errorMessage = e.toString());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Color _genderColor(String jk) {
+    return jk == 'jantan' ? const Color(0xFF2196F3) : const Color(0xFFE91E63);
+  }
+
+  Color _genderBg(String jk) {
+    return jk == 'jantan' ? const Color(0xFFE3F2FD) : const Color(0xFFFCE4EC);
+  }
+
+  void _showDetailModal(Domba d) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DetailDombaModal(
+        domba: d,
+        genderColor: _genderColor,
+        genderBg: _genderBg,
+        onEdit: () {
+          Navigator.pop(context);
+          _openEditForm(d);
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          _confirmDelete(d);
+        },
+      ),
+    );
+  }
+
+  void _openEditForm(Domba domba) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DombaFormModal(domba: domba),
+    );
+    if (result == true) {
+      _dataChanged = true;
+      _loadDomba();
+    }
+  }
+
+  Future<void> _confirmDelete(Domba d) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Hapus ${d.earTag}?',
+          style: const TextStyle(
+            fontFamily: 'Georgia',
+            fontSize: 17,
+            color: navyDark,
+          ),
+        ),
+        content: Text(
+          'Data domba "${d.earTag}" akan dihapus secara permanen.',
+          style: const TextStyle(fontSize: 13.5, color: textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await widget.dombaRepo.deleteDomba(d.idDomba);
+        if (mounted) {
+          _dataChanged = true;
+          AppPopup.show(
+            context,
+            message: 'Domba "${d.earTag}" berhasil dihapus.',
+          );
+          _loadDomba();
+        }
+      } catch (e) {
+        if (mounted) {
+          AppPopup.show(context, message: e.toString(), isError: true);
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final sisaKapasitas = widget.kandang.kapasitas - widget.kandang.jumlahDomba;
+
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop && _dataChanged) {
+          // Signal parent to reload
+        }
+      },
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.88,
+        ),
+        padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset + 20),
+        decoration: const BoxDecoration(
+          color: beigeLight,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 44,
+              height: 5,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD5CFBF),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+
+            // Header
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Domba di ${widget.kandang.namaKandang}',
+                        style: const TextStyle(
+                          fontFamily: 'Georgia',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: navyDark,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_dombaList.length} domba · Sisa kapasitas: $sisaKapasitas',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context, _dataChanged),
+                  icon: const Icon(Icons.close, color: navyDark),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Content
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.error_outline,
+                                  size: 40, color: Colors.red),
+                              const SizedBox(height: 8),
+                              Text(
+                                _errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                              const SizedBox(height: 12),
+                              TextButton(
+                                onPressed: _loadDomba,
+                                child: const Text('Coba Lagi'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : _dombaList.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.pets_outlined,
+                                    size: 48,
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Belum ada domba di kandang ini.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: textMuted),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Tambahkan domba menggunakan tombol di bawah.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              itemCount: _dombaList.length,
+                              separatorBuilder: (_, __) => const Divider(
+                                height: 1,
+                                color: Color(0xFFE8E3DA),
+                              ),
+                              itemBuilder: (context, index) {
+                                final d = _dombaList[index];
+                                return _buildDombaItem(d);
+                              },
+                            ),
+            ),
+            const SizedBox(height: 14),
+
+            // Add more button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: sisaKapasitas > 0 ? widget.onAddMore : null,
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(
+                  sisaKapasitas > 0
+                      ? 'Tambah Domba ke Kandang'
+                      : 'Kandang Sudah Penuh',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: navyDark,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: const Color(0xFFCCC7BB),
+                  disabledForegroundColor: Colors.white70,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDombaItem(Domba d) {
+    return InkWell(
+      onTap: () => _showDetailModal(d),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+        child: Row(
+          children: [
+            // Gender icon
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _genderBg(d.jenisKelamin),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                d.jenisKelamin == 'jantan' ? Icons.male : Icons.female,
+                size: 22,
+                color: _genderColor(d.jenisKelamin),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    d.earTag,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: navyDark,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${d.idBangsa ?? '-'} · ${d.jenisKelaminLabel} · ${d.umur}',
+                    style: const TextStyle(fontSize: 12, color: textMuted),
+                  ),
+                ],
+              ),
+            ),
+
+            // Gender badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _genderBg(d.jenisKelamin),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                d.jenisKelaminLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: _genderColor(d.jenisKelamin),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+
+            // Chevron
+            Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade300),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Detail Domba Modal (dipakai dari Kandang) ─────────────────────────────────
+
+class _DetailDombaModal extends StatefulWidget {
+  final Domba domba;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final Color Function(String) genderColor;
+  final Color Function(String) genderBg;
+
+  const _DetailDombaModal({
+    required this.domba,
+    required this.onEdit,
+    required this.onDelete,
+    required this.genderColor,
+    required this.genderBg,
+  });
+
+  @override
+  State<_DetailDombaModal> createState() => _DetailDombaModalState2();
+}
+
+class _DetailDombaModalState2 extends State<_DetailDombaModal> {
+  static const Color navyDark = Color(0xFF1A2B45);
+  static const Color textMuted = Color(0xFF8A9BB0);
+  static const Color redAccent = Color(0xFFD94F4F);
+
+  List<RekamMedis> _rekamMedis = [];
+  bool _isLoadingMedis = true;
+  List<Perkawinan> _perkawinan = [];
+  bool _isLoadingKawin = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRekamMedis();
+  }
+
+  Future<void> _loadRekamMedis() async {
+    try {
+      final data = await ApiService.fetchRekamMedisByEarTag(widget.domba.earTag);
+      if (mounted) {
+        setState(() {
+          _rekamMedis = data.map((e) => RekamMedis.fromJson(e)).toList();
+          _isLoadingMedis = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingMedis = false);
+    }
+    _loadPerkawinan();
+  }
+
+  Future<void> _loadPerkawinan() async {
+    try {
+      final data = await ApiService.fetchPerkawinanByEarTag(widget.domba.earTag);
+      if (mounted) {
+        setState(() {
+          _perkawinan = data.map((e) => Perkawinan.fromJson(e)).toList();
+          _isLoadingKawin = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingKawin = false);
+    }
+  }
+
+  Color _statusColor(String? s) {
+    switch (s?.toLowerCase()) {
+      case 'sehat': return const Color(0xFF4CAF50);
+      case 'bunting': case 'hamil': return const Color(0xFFFF9800);
+      case 'sakit': case 'dalam perawatan': case 'perawatan': case 'karantina': return const Color(0xFFE53935);
+      default: return textMuted;
+    }
+  }
+
+  Color _statusBg(String? s) {
+    switch (s?.toLowerCase()) {
+      case 'sehat': return const Color(0x1A4CAF50);
+      case 'bunting': case 'hamil': return const Color(0x1AFF9800);
+      case 'sakit': case 'dalam perawatan': case 'perawatan': case 'karantina': return const Color(0x1AE53935);
+      default: return const Color(0xFFF5F0E8);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final domba = widget.domba;
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFAF7F2),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  const Text(
+                    'Detail Domba',
+                    style: TextStyle(
+                      fontFamily: 'Georgia',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: navyDark,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAE4D8),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.close, size: 16, color: navyDark),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Identity card
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5EFE4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: widget.genderBg(domba.jenisKelamin),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        domba.jenisKelamin == 'jantan'
+                            ? Icons.male
+                            : Icons.female,
+                        size: 28,
+                        color: widget.genderColor(domba.jenisKelamin),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            domba.earTag,
+                            style: const TextStyle(
+                              fontFamily: 'Georgia',
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: navyDark,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${domba.idBangsa ?? '-'} · ${domba.jenisKelaminLabel}',
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Info grid
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _infoBox('Umur', domba.umur),
+                  _infoBox('Berat', domba.berat != null ? '${domba.berat} kg' : '-'),
+                  _infoBox('Status', domba.status ?? '-'),
+                  _infoBox('Vaksinasi', domba.vaksinasi ?? '-'),
+                  _infoBox('Induk', domba.namaInduk),
+                  _infoBox('Pejantan', domba.namaPejantan),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Rekam Medis Section
+            _buildRekamMedisSection(),
+            const SizedBox(height: 20),
+
+            // Perkawinan Section
+            _buildPerkawinanSection(),
+            const SizedBox(height: 20),
+
+            // Action buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: widget.onEdit,
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: const Text('Edit'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: navyDark,
+                        side: const BorderSide(color: Color(0xFFBFB8A8)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: widget.onDelete,
+                      icon: const Icon(Icons.delete_outline, size: 16),
+                      label: const Text('Hapus'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: redAccent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoBox(String label, String value) {
+    return SizedBox(
+      width: 155,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE8E3DA)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, color: textMuted),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: navyDark,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Rekam Medis Section ──
+  Widget _buildRekamMedisSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.medical_services_outlined, size: 16, color: Color(0xFF1976D2)),
+              ),
+              const SizedBox(width: 10),
+              const Text('Rekam Medis', style: TextStyle(fontFamily: 'Georgia', fontSize: 15, fontWeight: FontWeight.bold, color: navyDark)),
+              const Spacer(),
+              if (_rekamMedis.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(10)),
+                  child: Text('${_rekamMedis.length} catatan', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1976D2))),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_isLoadingMedis)
+            const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 20), child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))))
+          else if (_rekamMedis.isEmpty)
+            Container(
+              width: double.infinity, padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE8E3DA))),
+              child: Column(children: [
+                Icon(Icons.note_add_outlined, size: 32, color: Colors.grey.shade300),
+                const SizedBox(height: 8),
+                const Text('Belum ada catatan rekam medis', style: TextStyle(fontSize: 13, color: textMuted)),
+                const SizedBox(height: 4),
+                const Text('Scan catatan medis untuk menambahkan data', style: TextStyle(fontSize: 11, color: textMuted)),
+              ]),
+            )
+          else ...[
+            _buildLatestMedisCard(_rekamMedis.first),
+            if (_rekamMedis.length > 1) ...[
+              const SizedBox(height: 12),
+              const Text('RIWAYAT SEBELUMNYA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.0, color: textMuted)),
+              const SizedBox(height: 8),
+              ...List.generate(
+                _rekamMedis.length - 1 > 5 ? 5 : _rekamMedis.length - 1,
+                (i) => _buildMedisHistoryItem(_rekamMedis[i + 1]),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLatestMedisCard(RekamMedis rm) {
+    return Container(
+      width: double.infinity, padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE8E3DA)),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(6)),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.fiber_new_rounded, size: 14, color: Color(0xFF4CAF50)), SizedBox(width: 4), Text('Terbaru', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF4CAF50)))])),
+          const Spacer(),
+          Text(rm.tanggalDisplay, style: const TextStyle(fontSize: 12, color: textMuted)),
+        ]),
+        const SizedBox(height: 12),
+        if (rm.statusKesehatan != null) ...[
+          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: _statusBg(rm.statusKesehatan), borderRadius: BorderRadius.circular(8)),
+            child: Text(rm.statusLabel, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _statusColor(rm.statusKesehatan)))),
+          const SizedBox(height: 12),
+        ],
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          if (rm.berat != null) _medisChip(Icons.monitor_weight_outlined, '${rm.berat} kg'),
+          if (rm.suhuTubuh != null) _medisChip(Icons.thermostat_outlined, '${rm.suhuTubuh}°C'),
+          if (rm.vaksinasi != null) _medisChip(Icons.vaccines_outlined, rm.vaksinasi!),
+          if (rm.obat != null) _medisChip(Icons.medication_outlined, rm.obat!),
+        ]),
+        if (rm.catatan != null && rm.catatan!.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(width: double.infinity, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFFF9F6F1), borderRadius: BorderRadius.circular(8)),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.notes_outlined, size: 14, color: textMuted), const SizedBox(width: 8),
+              Expanded(child: Text(rm.catatan!, style: const TextStyle(fontSize: 12, color: navyDark, height: 1.4))),
+            ])),
+        ],
+      ]),
+    );
+  }
+
+  Widget _buildMedisHistoryItem(RekamMedis rm) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFEAE4D8))),
+      child: Row(children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: _statusColor(rm.statusKesehatan), shape: BoxShape.circle)),
+        const SizedBox(width: 10),
+        Text(rm.tanggalDisplay, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
+        const SizedBox(width: 10),
+        if (rm.statusKesehatan != null)
+          Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: _statusBg(rm.statusKesehatan), borderRadius: BorderRadius.circular(4)),
+            child: Text(rm.statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _statusColor(rm.statusKesehatan)))),
+        const Spacer(),
+        if (rm.berat != null) Text('${rm.berat} kg', style: const TextStyle(fontSize: 12, color: textMuted)),
+      ]),
+    );
+  }
+
+  Widget _medisChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: const Color(0xFFF5F0E8), borderRadius: BorderRadius.circular(8)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 14, color: navyDark), const SizedBox(width: 6),
+        Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: navyDark)),
+      ]),
+    );
+  }
+
+  // ── Perkawinan Section ──
+  Color _kawinColor(String? s) {
+    switch (s?.toLowerCase()) {
+      case 'kawin': return const Color(0xFF2196F3);
+      case 'bunting': return const Color(0xFFFF9800);
+      case 'lahir': return const Color(0xFF4CAF50);
+      case 'gagal': return const Color(0xFFFF6B6B);
+      default: return textMuted;
+    }
+  }
+  Color _kawinBg(String? s) {
+    switch (s?.toLowerCase()) {
+      case 'kawin': return const Color(0xFFE3F2FD);
+      case 'bunting': return const Color(0xFFFFF3E0);
+      case 'lahir': return const Color(0xFFE8F5E9);
+      case 'gagal': return const Color(0xFFFFEBEE);
+      default: return const Color(0xFFF5F0E8);
+    }
+  }
+
+  Widget _buildPerkawinanSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 32, height: 32, decoration: BoxDecoration(color: const Color(0xFFFCE4EC), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.favorite_outline, size: 16, color: Color(0xFFE91E63))),
+          const SizedBox(width: 10),
+          const Text('Data Perkawinan', style: TextStyle(fontFamily: 'Georgia', fontSize: 15, fontWeight: FontWeight.bold, color: navyDark)),
+          const Spacer(),
+          if (_perkawinan.isNotEmpty)
+            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: const Color(0xFFFCE4EC), borderRadius: BorderRadius.circular(10)),
+              child: Text('${_perkawinan.length} catatan', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFE91E63)))),
+        ]),
+        const SizedBox(height: 12),
+        if (_isLoadingKawin)
+          const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 20), child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))))
+        else if (_perkawinan.isEmpty)
+          Container(width: double.infinity, padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE8E3DA))),
+            child: Column(children: [
+              Icon(Icons.favorite_border, size: 32, color: Colors.grey.shade300),
+              const SizedBox(height: 8),
+              const Text('Belum ada data perkawinan', style: TextStyle(fontSize: 13, color: textMuted)),
+            ]))
+        else ...[
+          _buildLatestKawinCard(_perkawinan.first),
+          if (_perkawinan.length > 1) ...[
+            const SizedBox(height: 12),
+            const Text('RIWAYAT SEBELUMNYA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.0, color: textMuted)),
+            const SizedBox(height: 8),
+            ...List.generate(_perkawinan.length - 1 > 4 ? 4 : _perkawinan.length - 1, (i) => _buildKawinItem(_perkawinan[i + 1])),
+          ],
+        ],
+      ]),
+    );
+  }
+
+  Widget _buildLatestKawinCard(Perkawinan p) {
+    final domba = widget.domba;
+    final isBetina = domba.earTag == p.earTagBetina;
+    final pasanganTag = isBetina ? p.earTagJantan : p.earTagBetina;
+    final roleLabel = isBetina ? 'Betina' : 'Pejantan';
+    final pasanganRole = isBetina ? 'Pejantan' : 'Betina';
+    return Container(width: double.infinity, padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE8E3DA)),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: _kawinBg(p.statusPerkawinan), borderRadius: BorderRadius.circular(6)),
+            child: Text(p.statusLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _kawinColor(p.statusPerkawinan)))),
+          const Spacer(),
+          Text(p.tanggalKawinDisplay, style: const TextStyle(fontSize: 12, color: textMuted)),
+        ]),
+        const SizedBox(height: 12),
+        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFFF9F6F1), borderRadius: BorderRadius.circular(8)),
+          child: Row(children: [
+            Expanded(child: Column(children: [
+              Icon(isBetina ? Icons.female : Icons.male, size: 20, color: isBetina ? const Color(0xFFE91E63) : const Color(0xFF2196F3)),
+              const SizedBox(height: 4),
+              Text(domba.earTag, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
+              Text(roleLabel, style: const TextStyle(fontSize: 10, color: textMuted)),
+            ])),
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Icon(Icons.favorite, size: 16, color: Color(0xFFE91E63))),
+            Expanded(child: Column(children: [
+              Icon(!isBetina ? Icons.female : Icons.male, size: 20, color: !isBetina ? const Color(0xFFE91E63) : const Color(0xFF2196F3)),
+              const SizedBox(height: 4),
+              Text(pasanganTag, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
+              Text(pasanganRole, style: const TextStyle(fontSize: 10, color: textMuted)),
+            ])),
+          ])),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          _medisChip(Icons.science_outlined, p.metodeLabel),
+          if (p.tanggalPerkiraanLahir != null) _medisChip(Icons.event_outlined, 'Lahir: ${p.tanggalLahirDisplay}'),
+          if (p.jumlahAnak != null) _medisChip(Icons.child_care_outlined, '${p.jumlahAnak} anak'),
+        ]),
+        if (p.catatan != null && p.catatan!.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(width: double.infinity, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFFF9F6F1), borderRadius: BorderRadius.circular(8)),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.notes_outlined, size: 14, color: textMuted), const SizedBox(width: 8),
+              Expanded(child: Text(p.catatan!, style: const TextStyle(fontSize: 12, color: navyDark, height: 1.4))),
+            ])),
+        ],
+      ]),
+    );
+  }
+
+  Widget _buildKawinItem(Perkawinan p) {
+    final domba = widget.domba;
+    final isBetina = domba.earTag == p.earTagBetina;
+    final pasanganTag = isBetina ? p.earTagJantan : p.earTagBetina;
+    return Container(margin: const EdgeInsets.only(bottom: 6), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFEAE4D8))),
+      child: Row(children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: _kawinColor(p.statusPerkawinan), shape: BoxShape.circle)),
+        const SizedBox(width: 10),
+        Text(p.tanggalKawinDisplay, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
+        const SizedBox(width: 8),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: _kawinBg(p.statusPerkawinan), borderRadius: BorderRadius.circular(4)),
+          child: Text(p.statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kawinColor(p.statusPerkawinan)))),
+        const Spacer(),
+        const Icon(Icons.favorite, size: 10, color: Color(0xFFE91E63)), const SizedBox(width: 4),
+        Text(pasanganTag, style: const TextStyle(fontSize: 11, color: textMuted)),
+      ]),
+    );
+  }
+}
+
+// ─── Domba Form Modal (Edit domba dari Kandang) ────────────────────────────────
+
+class _DombaFormModal extends StatefulWidget {
+  final Domba? domba;
+
+  const _DombaFormModal({this.domba});
+
+  @override
+  State<_DombaFormModal> createState() => _DombaFormModalState();
+}
+
+class _DombaFormModalState extends State<_DombaFormModal> {
+  static const Color navyDark = Color(0xFF1A2B45);
+  static const Color beigeLight = Color(0xFFFAF7F2);
+  static const Color textMuted = Color(0xFF8A9BB0);
+
+  final _formKey = GlobalKey<FormState>();
+  final DombaRepository _repo = DombaRepository();
+
+  late final TextEditingController _earTagCtrl;
+  late final TextEditingController _beratCtrl;
+  String? _jenisKelamin;
+  String? _status;
+  String? _vaksinasi;
+  String? _idBangsa;
+  bool _isSaving = false;
+
+  // Dropdown data
+  List<Domba> _betinas = [];
+  List<Domba> _jantans = [];
+  String? _idInduk;
+  String? _idPejantan;
+  String? _tanggalLahir;
+
+  @override
+  void initState() {
+    super.initState();
+    _earTagCtrl = TextEditingController(text: widget.domba?.earTag ?? '');
+    _beratCtrl = TextEditingController(
+      text: widget.domba?.berat?.toString() ?? '',
+    );
+    _jenisKelamin = widget.domba?.jenisKelamin;
+    _status = widget.domba?.status;
+    _vaksinasi = widget.domba?.vaksinasi;
+    _idBangsa = widget.domba?.idBangsa;
+    _idInduk = widget.domba?.idInduk;
+    _idPejantan = widget.domba?.idPejantan;
+    _tanggalLahir = widget.domba?.tanggalLahir;
+    _loadDropdowns();
+  }
+
+  Future<void> _loadDropdowns() async {
+    try {
+      final results = await Future.wait([
+        _repo.fetchBetina(),
+        _repo.fetchJantan(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _betinas = results[0];
+          _jantans = results[1];
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _pickTanggal() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _tanggalLahir != null
+          ? DateTime.tryParse(_tanggalLahir!) ?? DateTime.now()
+          : DateTime.now(),
+      firstDate: DateTime(2015),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _tanggalLahir =
+            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_jenisKelamin == null) {
+      AppPopup.show(context, message: 'Pilih jenis kelamin.', isError: true);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final payload = {
+      'ear_tag': _earTagCtrl.text.trim(),
+      'jenis_kelamin': _jenisKelamin,
+      'id_bangsa': _idBangsa,
+      'berat': double.tryParse(_beratCtrl.text.trim()),
+      'status': _status,
+      'vaksinasi': _vaksinasi,
+      'id_induk': _idInduk,
+      'id_pejantan': _idPejantan,
+      'tanggal_lahir': _tanggalLahir,
+    };
+
+    try {
+      if (widget.domba != null) {
+        await _repo.updateDomba(widget.domba!.idDomba, payload);
+      } else {
+        await _repo.createDomba(payload);
+      }
+      if (mounted) {
+        Navigator.pop(context, true);
+        AppPopup.show(
+          context,
+          message: widget.domba != null
+              ? 'Domba berhasil diperbarui.'
+              : 'Domba berhasil ditambahkan.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppPopup.show(context, message: e.toString(), isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _earTagCtrl.dispose();
+    _beratCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.domba != null;
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
+      decoration: const BoxDecoration(
+        color: beigeLight,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: 44,
+              height: 5,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD5CFBF),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Text(
+                  isEdit ? 'Edit Domba' : 'Tambah Domba',
+                  style: const TextStyle(
+                    fontFamily: 'Georgia',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: navyDark,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: navyDark),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Form
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                20, 0, 20,
+                MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _styledField(
+                      label: 'Ear Tag',
+                      icon: Icons.label_outline,
+                      controller: _earTagCtrl,
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Wajib diisi' : null,
+                    ),
+                    const SizedBox(height: 14),
+                    _styledDropdown<String>(
+                      label: 'Jenis Kelamin',
+                      icon: Icons.wc,
+                      value: _jenisKelamin,
+                      items: const [
+                        DropdownMenuItem(value: 'jantan', child: Text('Jantan')),
+                        DropdownMenuItem(value: 'betina', child: Text('Betina')),
+                      ],
+                      onChanged: (v) => setState(() => _jenisKelamin = v),
+                    ),
+                    const SizedBox(height: 14),
+                    _styledDropdown<String>(
+                      label: 'Bangsa',
+                      icon: Icons.category_outlined,
+                      value: _idBangsa,
+                      items: ['ETAWA', 'MERINO', 'DORPER', 'LOKAL', 'GARUT']
+                          .map((b) => DropdownMenuItem(value: b, child: Text(b)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _idBangsa = v),
+                    ),
+                    const SizedBox(height: 14),
+                    _styledField(
+                      label: 'Berat (kg)',
+                      icon: Icons.monitor_weight_outlined,
+                      controller: _beratCtrl,
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 14),
+                    _styledDropdown<String>(
+                      label: 'Status',
+                      icon: Icons.health_and_safety_outlined,
+                      value: _status,
+                      items: ['sehat', 'sakit', 'karantina', 'bunting']
+                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _status = v),
+                    ),
+                    const SizedBox(height: 14),
+                    _styledDropdown<String>(
+                      label: 'Vaksinasi',
+                      icon: Icons.vaccines_outlined,
+                      value: _vaksinasi,
+                      items: ['sudah', 'belum']
+                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _vaksinasi = v),
+                    ),
+                    const SizedBox(height: 14),
+                    GestureDetector(
+                      onTap: _pickTanggal,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFDDD8CE)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today,
+                                size: 18, color: textMuted),
+                            const SizedBox(width: 12),
+                            Text(
+                              _tanggalLahir ?? 'Tanggal Lahir',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: _tanggalLahir != null
+                                    ? navyDark
+                                    : Colors.grey.shade400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _styledDropdown<String>(
+                      label: 'Induk',
+                      icon: Icons.female,
+                      value: _idInduk,
+                      items: _betinas
+                          .map((b) => DropdownMenuItem(
+                                value: b.idDomba,
+                                child: Text(b.earTag),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() => _idInduk = v),
+                    ),
+                    const SizedBox(height: 14),
+                    _styledDropdown<String>(
+                      label: 'Pejantan',
+                      icon: Icons.male,
+                      value: _idPejantan,
+                      items: _jantans
+                          .map((j) => DropdownMenuItem(
+                                value: j.idDomba,
+                                child: Text(j.earTag),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() => _idPejantan = v),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: navyDark,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                isEdit ? 'Simpan Perubahan' : 'Tambah Domba',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _styledField({
+    required String label,
+    required IconData icon,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      validator: validator,
+      style: const TextStyle(fontSize: 14, color: navyDark),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: textMuted, fontSize: 13),
+        prefixIcon: Icon(icon, size: 18, color: textMuted),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFDDD8CE)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFDDD8CE)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: navyDark, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14, vertical: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _styledDropdown<T>({
+    required String label,
+    required IconData icon,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required void Function(T?) onChanged,
+  }) {
+    return DropdownButtonFormField<T>(
+      value: items.any((item) => item.value == value) ? value : null,
+      items: items,
+      onChanged: onChanged,
+      style: const TextStyle(fontSize: 14, color: navyDark),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: textMuted, fontSize: 13),
+        prefixIcon: Icon(icon, size: 18, color: textMuted),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFDDD8CE)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFDDD8CE)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: navyDark, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14, vertical: 14,
+        ),
       ),
     );
   }

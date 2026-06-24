@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/domba_model.dart';
+import '../models/rekam_medis_model.dart';
+import '../models/perkawinan_model.dart';
 import '../repositories/domba_repository.dart';
+import '../services/api_service.dart';
 import '../widgets/app_popup.dart';
 
 // ─── Screen utama ─────────────────────────────────────────────────────────────
@@ -652,15 +655,12 @@ class _DataDombaScreenState extends State<DataDombaScreen> {
 
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 
-class _DetailDombaModal extends StatelessWidget {
+class _DetailDombaModal extends StatefulWidget {
   final Domba domba;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final Color Function(String) genderColor;
   final Color Function(String) genderBg;
-
-  static const Color navyDark = Color(0xFF1A2B45);
-  static const Color textMuted = Color(0xFF8A9BB0);
 
   const _DetailDombaModal({
     required this.domba,
@@ -671,7 +671,74 @@ class _DetailDombaModal extends StatelessWidget {
   });
 
   @override
+  State<_DetailDombaModal> createState() => _DetailDombaModalState();
+}
+
+class _DetailDombaModalState extends State<_DetailDombaModal> {
+  static const Color navyDark = Color(0xFF1A2B45);
+  static const Color textMuted = Color(0xFF8A9BB0);
+
+  List<RekamMedis> _rekamMedis = [];
+  bool _isLoadingMedis = true;
+  List<Perkawinan> _perkawinan = [];
+  bool _isLoadingKawin = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRekamMedis();
+  }
+
+  Future<void> _loadRekamMedis() async {
+    try {
+      final data = await ApiService.fetchRekamMedisByEarTag(widget.domba.earTag);
+      if (mounted) {
+        setState(() {
+          _rekamMedis = data.map((e) => RekamMedis.fromJson(e)).toList();
+          _isLoadingMedis = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingMedis = false);
+    }
+    _loadPerkawinan();
+  }
+
+  Future<void> _loadPerkawinan() async {
+    try {
+      final data = await ApiService.fetchPerkawinanByEarTag(widget.domba.earTag);
+      if (mounted) {
+        setState(() {
+          _perkawinan = data.map((e) => Perkawinan.fromJson(e)).toList();
+          _isLoadingKawin = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingKawin = false);
+    }
+  }
+
+  Color _statusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'sehat': return const Color(0xFF4CAF50);
+      case 'bunting': case 'hamil': return const Color(0xFFFF9800);
+      case 'sakit': case 'dalam perawatan': case 'perawatan': case 'karantina': return const Color(0xFFE53935);
+      default: return textMuted;
+    }
+  }
+
+  Color _statusBg(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'sehat': return const Color(0x1A4CAF50);
+      case 'bunting': case 'hamil': return const Color(0x1AFF9800);
+      case 'sakit': case 'dalam perawatan': case 'perawatan': case 'karantina': return const Color(0x1AE53935);
+      default: return const Color(0xFFF5F0E8);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final domba = widget.domba;
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFFAF7F2),
@@ -746,7 +813,7 @@ class _DetailDombaModal extends StatelessWidget {
                       width: 52,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: genderBg(domba.jenisKelamin),
+                        color: widget.genderBg(domba.jenisKelamin),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -754,7 +821,7 @@ class _DetailDombaModal extends StatelessWidget {
                             ? Icons.male
                             : Icons.female,
                         size: 28,
-                        color: genderColor(domba.jenisKelamin),
+                        color: widget.genderColor(domba.jenisKelamin),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -786,7 +853,7 @@ class _DetailDombaModal extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: genderBg(domba.jenisKelamin),
+                              color: widget.genderBg(domba.jenisKelamin),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -794,7 +861,7 @@ class _DetailDombaModal extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: genderColor(domba.jenisKelamin),
+                                color: widget.genderColor(domba.jenisKelamin),
                               ),
                             ),
                           ),
@@ -835,6 +902,12 @@ class _DetailDombaModal extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+            // ── Rekam Medis Section ──
+            _buildRekamMedisSection(),
+            const SizedBox(height: 20),
+            // ── Perkawinan Section ──
+            _buildPerkawinanSection(),
+            const SizedBox(height: 20),
             // Buttons
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -845,7 +918,7 @@ class _DetailDombaModal extends StatelessWidget {
                     width: 48,
                     height: 48,
                     child: OutlinedButton(
-                      onPressed: onDelete,
+                      onPressed: widget.onDelete,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
                         side: const BorderSide(color: Colors.red, width: 1.5),
@@ -884,7 +957,7 @@ class _DetailDombaModal extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: onEdit,
+                      onPressed: widget.onEdit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: navyDark,
                         foregroundColor: Colors.white,
@@ -944,6 +1017,534 @@ class _DetailDombaModal extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // ── Rekam Medis Section ──
+  Widget _buildRekamMedisSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.medical_services_outlined,
+                  size: 16,
+                  color: Color(0xFF1976D2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Rekam Medis',
+                style: TextStyle(
+                  fontFamily: 'Georgia',
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: navyDark,
+                ),
+              ),
+              const Spacer(),
+              if (_rekamMedis.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${_rekamMedis.length} catatan',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1976D2),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Content
+          if (_isLoadingMedis)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (_rekamMedis.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE8E3DA)),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.note_add_outlined, size: 32, color: Colors.grey.shade300),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Belum ada catatan rekam medis',
+                    style: TextStyle(fontSize: 13, color: textMuted),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Scan catatan medis untuk menambahkan data',
+                    style: TextStyle(fontSize: 11, color: textMuted),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            // Latest record — highlight card
+            _buildLatestMedisCard(_rekamMedis.first),
+
+            // Older records
+            if (_rekamMedis.length > 1) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'RIWAYAT SEBELUMNYA',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                  color: textMuted,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...List.generate(
+                _rekamMedis.length - 1 > 5 ? 5 : _rekamMedis.length - 1,
+                (i) => _buildMedisHistoryItem(_rekamMedis[i + 1]),
+              ),
+              if (_rekamMedis.length > 6)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    '+ ${_rekamMedis.length - 6} catatan lainnya',
+                    style: const TextStyle(fontSize: 12, color: textMuted),
+                  ),
+                ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLatestMedisCard(RekamMedis rm) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8E3DA)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.fiber_new_rounded, size: 14, color: Color(0xFF4CAF50)),
+                    SizedBox(width: 4),
+                    Text(
+                      'Terbaru',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF4CAF50),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                rm.tanggalDisplay,
+                style: const TextStyle(fontSize: 12, color: textMuted),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Status badge
+          if (rm.statusKesehatan != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _statusBg(rm.statusKesehatan),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                rm.statusLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _statusColor(rm.statusKesehatan),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Data chips
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (rm.berat != null)
+                _medisInfoChip(Icons.monitor_weight_outlined, '${rm.berat} kg'),
+              if (rm.suhuTubuh != null)
+                _medisInfoChip(Icons.thermostat_outlined, '${rm.suhuTubuh}°C'),
+              if (rm.vaksinasi != null)
+                _medisInfoChip(Icons.vaccines_outlined, rm.vaksinasi!),
+              if (rm.obat != null)
+                _medisInfoChip(Icons.medication_outlined, rm.obat!),
+            ],
+          ),
+
+          // Notes
+          if (rm.catatan != null && rm.catatan!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9F6F1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.notes_outlined, size: 14, color: textMuted),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      rm.catatan!,
+                      style: const TextStyle(fontSize: 12, color: navyDark, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMedisHistoryItem(RekamMedis rm) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFEAE4D8)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: _statusColor(rm.statusKesehatan),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            rm.tanggalDisplay,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: navyDark,
+            ),
+          ),
+          const SizedBox(width: 10),
+          if (rm.statusKesehatan != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: _statusBg(rm.statusKesehatan),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                rm.statusLabel,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: _statusColor(rm.statusKesehatan),
+                ),
+              ),
+            ),
+          const Spacer(),
+          if (rm.berat != null)
+            Text(
+              '${rm.berat} kg',
+              style: const TextStyle(fontSize: 12, color: textMuted),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _medisInfoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F0E8),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: navyDark),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: navyDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Perkawinan Section ──
+
+  Color _kawinStatusColor(String? s) {
+    switch (s?.toLowerCase()) {
+      case 'kawin': return const Color(0xFF2196F3);
+      case 'bunting': return const Color(0xFFFF9800);
+      case 'lahir': return const Color(0xFF4CAF50);
+      case 'gagal': return const Color(0xFFFF6B6B);
+      default: return textMuted;
+    }
+  }
+
+  Color _kawinStatusBg(String? s) {
+    switch (s?.toLowerCase()) {
+      case 'kawin': return const Color(0xFFE3F2FD);
+      case 'bunting': return const Color(0xFFFFF3E0);
+      case 'lahir': return const Color(0xFFE8F5E9);
+      case 'gagal': return const Color(0xFFFFEBEE);
+      default: return const Color(0xFFF5F0E8);
+    }
+  }
+
+  Widget _buildPerkawinanSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFCE4EC),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.favorite_outline, size: 16, color: Color(0xFFE91E63)),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Data Perkawinan',
+                style: TextStyle(fontFamily: 'Georgia', fontSize: 15, fontWeight: FontWeight.bold, color: navyDark),
+              ),
+              const Spacer(),
+              if (_perkawinan.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: const Color(0xFFFCE4EC), borderRadius: BorderRadius.circular(10)),
+                  child: Text(
+                    '${_perkawinan.length} catatan',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFE91E63)),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          if (_isLoadingKawin)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+            )
+          else if (_perkawinan.isEmpty)
+            Container(
+              width: double.infinity, padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE8E3DA))),
+              child: Column(children: [
+                Icon(Icons.favorite_border, size: 32, color: Colors.grey.shade300),
+                const SizedBox(height: 8),
+                const Text('Belum ada data perkawinan', style: TextStyle(fontSize: 13, color: textMuted)),
+                const SizedBox(height: 4),
+                const Text('Data perkawinan akan muncul di sini', style: TextStyle(fontSize: 11, color: textMuted)),
+              ]),
+            )
+          else ...[
+            // Latest breeding record
+            _buildLatestKawinCard(_perkawinan.first),
+
+            if (_perkawinan.length > 1) ...[
+              const SizedBox(height: 12),
+              const Text('RIWAYAT SEBELUMNYA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.0, color: textMuted)),
+              const SizedBox(height: 8),
+              ...List.generate(
+                _perkawinan.length - 1 > 4 ? 4 : _perkawinan.length - 1,
+                (i) => _buildKawinHistoryItem(_perkawinan[i + 1]),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLatestKawinCard(Perkawinan p) {
+    final domba = widget.domba;
+    final isBetina = domba.earTag == p.earTagBetina;
+    final pasanganTag = isBetina ? p.earTagJantan : p.earTagBetina;
+    final roleLabel = isBetina ? 'Betina' : 'Pejantan';
+    final pasanganRole = isBetina ? 'Pejantan' : 'Betina';
+
+    return Container(
+      width: double.infinity, padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8E3DA)),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: status + date
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: _kawinStatusBg(p.statusPerkawinan), borderRadius: BorderRadius.circular(6)),
+              child: Text(p.statusLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _kawinStatusColor(p.statusPerkawinan))),
+            ),
+            const Spacer(),
+            Text(p.tanggalKawinDisplay, style: const TextStyle(fontSize: 12, color: textMuted)),
+          ]),
+          const SizedBox(height: 12),
+
+          // Pair info
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: const Color(0xFFF9F6F1), borderRadius: BorderRadius.circular(8)),
+            child: Row(children: [
+              // This domba
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                Icon(isBetina ? Icons.female : Icons.male, size: 20, color: isBetina ? const Color(0xFFE91E63) : const Color(0xFF2196F3)),
+                const SizedBox(height: 4),
+                Text(domba.earTag, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
+                Text(roleLabel, style: const TextStyle(fontSize: 10, color: textMuted)),
+              ])),
+              // Heart icon
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(Icons.favorite, size: 16, color: Color(0xFFE91E63)),
+              ),
+              // Partner
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                Icon(!isBetina ? Icons.female : Icons.male, size: 20, color: !isBetina ? const Color(0xFFE91E63) : const Color(0xFF2196F3)),
+                const SizedBox(height: 4),
+                Text(pasanganTag, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
+                Text(pasanganRole, style: const TextStyle(fontSize: 10, color: textMuted)),
+              ])),
+            ]),
+          ),
+          const SizedBox(height: 10),
+
+          // Info chips
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            _medisInfoChip(Icons.science_outlined, p.metodeLabel),
+            if (p.tanggalPerkiraanLahir != null)
+              _medisInfoChip(Icons.event_outlined, 'Lahir: ${p.tanggalLahirDisplay}'),
+            if (p.jumlahAnak != null)
+              _medisInfoChip(Icons.child_care_outlined, '${p.jumlahAnak} anak'),
+          ]),
+
+          if (p.catatan != null && p.catatan!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity, padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: const Color(0xFFF9F6F1), borderRadius: BorderRadius.circular(8)),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Icon(Icons.notes_outlined, size: 14, color: textMuted),
+                const SizedBox(width: 8),
+                Expanded(child: Text(p.catatan!, style: const TextStyle(fontSize: 12, color: navyDark, height: 1.4))),
+              ]),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKawinHistoryItem(Perkawinan p) {
+    final domba = widget.domba;
+    final isBetina = domba.earTag == p.earTagBetina;
+    final pasanganTag = isBetina ? p.earTagJantan : p.earTagBetina;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFEAE4D8))),
+      child: Row(children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: _kawinStatusColor(p.statusPerkawinan), shape: BoxShape.circle)),
+        const SizedBox(width: 10),
+        Text(p.tanggalKawinDisplay, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(color: _kawinStatusBg(p.statusPerkawinan), borderRadius: BorderRadius.circular(4)),
+          child: Text(p.statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kawinStatusColor(p.statusPerkawinan))),
+        ),
+        const Spacer(),
+        const Icon(Icons.favorite, size: 10, color: Color(0xFFE91E63)),
+        const SizedBox(width: 4),
+        Text(pasanganTag, style: const TextStyle(fontSize: 11, color: textMuted)),
+      ]),
     );
   }
 }

@@ -74,4 +74,25 @@ class Domba extends Model
                     ->whereNull('tanggal_keluar')
                     ->latest('tanggal_masuk');
     }
+
+    // Rekam medis
+    public function rekamMedis()
+    {
+        return $this->hasMany(RekamMedis::class, 'id_domba', 'id_domba')
+                    ->orderBy('tanggal_pemeriksaan', 'desc');
+    }
+
+    // Perkawinan sebagai betina
+    public function perkawinanBetina()
+    {
+        return $this->hasMany(Perkawinan::class, 'id_domba_betina', 'id_domba')
+                    ->orderBy('tanggal_kawin', 'desc');
+    }
+
+    // Perkawinan sebagai jantan
+    public function perkawinanJantan()
+    {
+        return $this->hasMany(Perkawinan::class, 'id_domba_jantan', 'id_domba')
+                    ->orderBy('tanggal_kawin', 'desc');
+    }
 }

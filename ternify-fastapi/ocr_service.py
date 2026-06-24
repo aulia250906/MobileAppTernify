@@ -6,6 +6,7 @@ import numpy as np
 import pytesseract
 from rapidfuzz import process, fuzz
 
+
 # Path Windows dihapus karena Colab menggunakan Linux. Pytesseract akan otomatis menemukannya.
 
 # ==================================================================
