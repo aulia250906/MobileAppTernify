@@ -15,7 +15,7 @@ class ApiConfig {
     if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       return "http://127.0.0.1:8001";
     }
-    return "http://192.168.18.59:8001"; // Untuk Android Emulator. Ubah ke "http://192.168.0.178:8001" jika menggunakan HP Fisik.
+    return "http://192.168.18.227:8001"; // Untuk Android Emulator. Ubah ke "http://192.168.0.178:8001" jika menggunakan HP Fisik.
   }
 
   // Timeout configuration (dalam seconds)

@@ -45,6 +45,7 @@ final OCRApiService _ocrApiService = OCRApiService();
 
 Map<String, dynamic>? _ocrResult;
 String? _errorMessage;
+final Map<String, TextEditingController> _editControllers = {};
   // ──────────────────────────── Source Picker Bottom Sheet ────────────────────
 
   /// Public method — called from MainShell when scan tab becomes active
@@ -100,7 +101,7 @@ Future<void> _processOCR(XFile image) async {
   _errorMessage = null;
   _ocrResult = null;
   _isSaved = false;
-  
+  _disposeControllers();
 });
 
   final result = await _ocrApiService.scanDocument(image);
@@ -112,6 +113,7 @@ Future<void> _processOCR(XFile image) async {
       _ocrResult = result['data'];
       _hasImage = true;
       _isProcessing = false;
+      _initEditControllers();
     });
   } else {
     setState(() {
@@ -128,6 +130,36 @@ Future<void> _processOCR(XFile image) async {
     );
   }
 }
+void _initEditControllers() {
+  _disposeControllers();
+  final details = _ocrResult?['details'];
+  if (details is Map) {
+    for (final entry in details.entries) {
+      _editControllers[entry.key.toString()] = TextEditingController(
+        text: entry.value?.toString() ?? '',
+      );
+    }
+  }
+}
+
+void _disposeControllers() {
+  for (final c in _editControllers.values) {
+    c.dispose();
+  }
+  _editControllers.clear();
+}
+
+/// Get the edited details (from controllers, not raw OCR)
+Map<String, dynamic> _getEditedDetails() {
+  return _editControllers.map((key, ctrl) => MapEntry(key, ctrl.text.trim()));
+}
+
+@override
+void dispose() {
+  _disposeControllers();
+  super.dispose();
+}
+
 String _todayForApi() {
   final now = DateTime.now();
   final month = now.month.toString().padLeft(2, '0');
@@ -161,9 +193,12 @@ Future<void> _saveScanResult() async {
     _isSaving = true;
   });
 
-  final details = result['details'] is Map
-      ? Map<String, dynamic>.from(result['details'])
-      : <String, dynamic>{};
+  // Use edited values from controllers instead of raw OCR data
+  final details = _editControllers.isNotEmpty
+      ? _getEditedDetails()
+      : (result['details'] is Map
+          ? Map<String, dynamic>.from(result['details'])
+          : <String, dynamic>{});
 
   final rawConfidence =
       double.tryParse(result['confidence']?.toString() ?? '0') ?? 0;
@@ -763,6 +798,36 @@ child: _pickedImage != null
     return const Color(0xFFFF6B6B);
   }
 
+  Widget _buildDropdownField({
+    required TextEditingController controller,
+    required List<String> options,
+    required Map<String, String> labels,
+  }) {
+    final currentValue = options.contains(controller.text.toLowerCase())
+        ? controller.text.toLowerCase()
+        : null;
+    return DropdownButtonFormField<String>(
+      value: currentValue,
+      isDense: true,
+      decoration: const InputDecoration(
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(vertical: 8),
+        border: InputBorder.none,
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFE8E3DA), width: 1),
+        ),
+      ),
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: navyDark),
+      icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFFBFB8A8)),
+      items: options.map((opt) {
+        return DropdownMenuItem(value: opt, child: Text(labels[opt] ?? opt));
+      }).toList(),
+      onChanged: (val) {
+        if (val != null) controller.text = val;
+      },
+    );
+  }
+
   String _getConfidenceLabel(double value) {
     if (value >= 80) return 'Akurasi Tinggi';
     if (value >= 60) return 'Akurasi Sedang';
@@ -1120,25 +1185,26 @@ child: _pickedImage != null
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
             child: Text(
-              'Periksa data sebelum menyimpan ke database',
+              'Periksa dan edit data sebelum menyimpan ke database',
               style: TextStyle(fontSize: 11.5, color: textMuted),
             ),
           ),
           const SizedBox(height: 12),
 
-          // Data rows
+          // Data rows — editable
           ...entries.asMap().entries.map((indexed) {
             final index = indexed.key;
             final entry = indexed.value;
             final isLast = index == entries.length - 1;
             final fieldIcon = _getFieldIcon(entry.key);
             final fieldLabel = _getFieldLabel(entry.key);
-            final fieldValue = entry.value?.toString() ?? '-';
+            final controller = _editControllers[entry.key];
+            final isDropdown = entry.key == 'jenis_kelamin';
 
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -1153,7 +1219,7 @@ child: _pickedImage != null
                         child: Icon(fieldIcon, size: 16, color: navyDark),
                       ),
                       const SizedBox(width: 12),
-                      // Label + Value
+                      // Label + Editable Field
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1161,21 +1227,42 @@ child: _pickedImage != null
                             Text(
                               fieldLabel,
                               style: const TextStyle(
-                                fontSize: 11.5,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: textMuted,
                               ),
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              fieldValue.isEmpty ? '-' : fieldValue,
-                              style: const TextStyle(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w500,
-                                color: navyDark,
-                                height: 1.3,
+                            const SizedBox(height: 2),
+                            if (isDropdown)
+                              _buildDropdownField(
+                                controller: controller!,
+                                options: const ['jantan', 'betina'],
+                                labels: const {'jantan': 'Jantan', 'betina': 'Betina'},
+                              )
+                            else
+                              TextField(
+                                controller: controller,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: navyDark,
+                                ),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                                  border: InputBorder.none,
+                                  enabledBorder: const UnderlineInputBorder(
+                                    borderSide: BorderSide(color: Color(0xFFE8E3DA), width: 1),
+                                  ),
+                                  focusedBorder: const UnderlineInputBorder(
+                                    borderSide: BorderSide(color: Color(0xFF1A2B45), width: 1.5),
+                                  ),
+                                  hintText: _getFieldHint(entry.key),
+                                  hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFBFB8A8)),
+                                  suffixIcon: const Icon(Icons.edit_outlined, size: 14, color: Color(0xFFBFB8A8)),
+                                  suffixIconConstraints: const BoxConstraints(maxHeight: 20, maxWidth: 20),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),

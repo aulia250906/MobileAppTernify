@@ -22,7 +22,7 @@ class ApiService {
     //   return "http://127.0.0.1:8080/api";
     
 
-    return "http://192.168.18.59:8080/api";
+    return "http://192.168.18.227:8000/api";
   }
 
   static const String _tokenKey = 'auth_token';
@@ -529,6 +529,53 @@ static Future<bool> validateSession() async {
     throw Exception(decoded['message'] ?? 'Gagal mengambil statistik domba');
   }
 
+  /// GET /api/kandang/statistik
+  static Future<Map<String, dynamic>> fetchKandangStatistik() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/kandang/statistik'),
+      headers: await authHeaders(),
+    );
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return Map<String, dynamic>.from(decoded['data'] ?? {});
+    }
+
+    throw Exception(decoded['message'] ?? 'Gagal mengambil statistik kandang');
+  }
+
+  /// GET /api/scan-logs (count only) — returns total scan count
+  static Future<int> fetchTotalScan() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/scan-logs').replace(queryParameters: {'per_page': '1'}),
+        headers: await authHeaders(),
+      );
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Check root-level total (from ScanLogController)
+        if (decoded['total'] != null) {
+          return (decoded['total'] as num).toInt();
+        }
+        // Fallback: check meta.total
+        final meta = decoded['meta'];
+        if (meta != null && meta['total'] != null) {
+          return (meta['total'] as num).toInt();
+        }
+        // Fallback: count data array
+        final data = decoded['data'];
+        if (data is List) return data.length;
+        return 0;
+      }
+      return 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
 
     // ─────────────────────────────────────────────
   // SCAN LOG / RIWAYAT DIGITALISASI API
@@ -719,4 +766,149 @@ static Future<List<Map<String, dynamic>>> fetchDombaByKandang(
 
   throw Exception(decoded['message'] ?? 'Gagal mengambil domba kandang');
 }
+
+  // ─────────────────────────────────────────────
+  // REKAM MEDIS API
+  // ─────────────────────────────────────────────
+
+  /// POST /api/rekam-medis
+  static Future<Map<String, dynamic>> createRekamMedis(
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/rekam-medis'),
+        headers: await authHeaders(),
+        body: jsonEncode(payload),
+      );
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded;
+      }
+      return {'success': false, 'message': decoded['message'] ?? 'Gagal menyimpan rekam medis'};
+    } catch (e) {
+      return {'success': false, 'message': 'Koneksi gagal: $e'};
+    }
+  }
+
+  /// GET /api/rekam-medis?ear_tag=xxx
+  static Future<List<Map<String, dynamic>>> fetchRekamMedisByEarTag(
+    String earTag,
+  ) async {
+    final uri = Uri.parse('$baseUrl/rekam-medis').replace(
+      queryParameters: {'ear_tag': earTag},
+    );
+    final response = await http.get(uri, headers: await authHeaders());
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = decoded['data'];
+      if (data is List) {
+        return data.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+      return [];
+    }
+    throw Exception(decoded['message'] ?? 'Gagal mengambil rekam medis');
+  }
+
+  /// GET /api/domba/{id}/rekam-medis
+  static Future<List<Map<String, dynamic>>> fetchRekamMedisByDomba(
+    String idDomba,
+  ) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/domba/$idDomba/rekam-medis'),
+      headers: await authHeaders(),
+    );
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = decoded['data'];
+      if (data is List) {
+        return data.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+      return [];
+    }
+    throw Exception(decoded['message'] ?? 'Gagal mengambil rekam medis');
+  }
+
+  // ─────────────────────────────────────────────
+  // PERKAWINAN API
+  // ─────────────────────────────────────────────
+
+  /// POST /api/perkawinan
+  static Future<Map<String, dynamic>> createPerkawinan(
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/perkawinan'),
+        headers: await authHeaders(),
+        body: jsonEncode(payload),
+      );
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded;
+      }
+      return {'success': false, 'message': decoded['message'] ?? 'Gagal menyimpan data perkawinan'};
+    } catch (e) {
+      return {'success': false, 'message': 'Koneksi gagal: $e'};
+    }
+  }
+
+  /// GET /api/perkawinan?ear_tag=xxx
+  static Future<List<Map<String, dynamic>>> fetchPerkawinanByEarTag(
+    String earTag,
+  ) async {
+    final uri = Uri.parse('$baseUrl/perkawinan').replace(
+      queryParameters: {'ear_tag': earTag},
+    );
+    final response = await http.get(uri, headers: await authHeaders());
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = decoded['data'];
+      if (data is List) {
+        return data.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+      return [];
+    }
+    throw Exception(decoded['message'] ?? 'Gagal mengambil data perkawinan');
+  }
+
+  /// GET /api/domba/{id}/perkawinan
+  static Future<List<Map<String, dynamic>>> fetchPerkawinanByDomba(
+    String idDomba,
+  ) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/domba/$idDomba/perkawinan'),
+      headers: await authHeaders(),
+    );
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = decoded['data'];
+      if (data is List) {
+        return data.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+      return [];
+    }
+    throw Exception(decoded['message'] ?? 'Gagal mengambil data perkawinan');
+  }
+
+  /// PUT /api/perkawinan/{id}
+  static Future<Map<String, dynamic>> updatePerkawinan(
+    int id,
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/perkawinan/$id'),
+        headers: await authHeaders(),
+        body: jsonEncode(payload),
+      );
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded;
+      }
+      return {'success': false, 'message': decoded['message'] ?? 'Gagal memperbarui data perkawinan'};
+    } catch (e) {
+      return {'success': false, 'message': 'Koneksi gagal: $e'};
+    }
+  }
 }

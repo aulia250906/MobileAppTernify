@@ -112,8 +112,8 @@ class _ProfilScreenState extends State<ProfilScreen> {
     try {
       final results = await Future.wait([
         ApiService.fetchDombaStatistik(),
-        // ApiService.fetchKandangStatistik(),
-        // ApiService.fetchTotalScan(),
+        ApiService.fetchKandangStatistik(),
+        ApiService.fetchTotalScan(),
       ]);
 
       final dombaStats = Map<String, dynamic>.from(results[0] as Map);
