@@ -49,6 +49,32 @@ Future<List<Domba>> fetchDombaByKandang(String idKandang) async {
   }
 }
 
+Future<void> removeDombaFromKandang({
+  required String idKandang,
+  required List<String> dombaIds,
+  required String reason,
+}) async {
+  try {
+    await ApiService.removeDombaFromKandang(
+      idKandang: idKandang,
+      dombaIds: dombaIds,
+      reason: reason,
+    );
+  } catch (e) {
+    if (e is String) rethrow;
+    throw e.toString();
+  }
+}
+
+Future<List<Map<String, dynamic>>> fetchSemuaDomba() async {
+  try {
+    return await ApiService.fetchSemuaDomba();
+  } catch (e) {
+    if (e is String) rethrow;
+    throw e.toString();
+  }
+}
+
   /// GET /api/kandang/statistik — Statistik kandang
   Future<Map<String, int>> fetchStatistik() async {
     try {
@@ -63,6 +89,7 @@ Future<List<Domba>> fetchDombaByKandang(String idKandang) async {
         return {
           'total_kandang': d['total_kandang'] as int,
           'total_domba': d['total_domba'] as int,
+          'total_domba_semua': (d['total_domba_semua'] as int?) ?? (d['total_domba'] as int),
         };
       }
       throw body['message'] ?? 'Terjadi kesalahan.';

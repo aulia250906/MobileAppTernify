@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/login_screen.dart';
 import 'screens/data_domba_screen.dart';
 import 'screens/splash_screen.dart';
@@ -38,6 +39,15 @@ class TernakDigitalApp extends StatelessWidget {
     return MaterialApp(
       title: 'Ternify2',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('id', 'ID'),
+        Locale('en', 'US'),
+      ],
       theme: ThemeData(
         fontFamily: 'Georgia',
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E2D4A)),

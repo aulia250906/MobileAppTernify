@@ -43,10 +43,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Kandang (data per user)
     Route::prefix('kandang')->group(function () {
         Route::get('statistik',   [KandangController::class, 'statistik']);
+        Route::get('semua-domba', [KandangController::class, 'semuaDomba']);
         Route::get('/',           [KandangController::class, 'index']);
         Route::post('/',          [KandangController::class, 'store']);
         Route::get('/{id}/domba',         [KandangController::class, 'domba']);
         Route::post('/{id}/assign-domba', [KandangController::class, 'assignDomba']);
+        Route::post('/{id}/remove-domba', [KandangController::class, 'removeDomba']);
         Route::get('/{id}',       [KandangController::class, 'show']);
         Route::put('/{id}',       [KandangController::class, 'update']);
         Route::delete('/{id}',    [KandangController::class, 'destroy']);

@@ -18,6 +18,7 @@ class DombaResource extends JsonResource
             'berat'         => $this->berat,
             'status'        => $this->status,
             'vaksinasi'     => $this->vaksinasi,
+            'status_ketersediaan' => $this->status_ketersediaan ?? 'tersedia',
             'id_induk'      => $this->id_induk,
             'id_pejantan'   => $this->id_pejantan,
 

@@ -11,6 +11,7 @@ class Domba {
   final double? berat;
 final String? status;
 final String? vaksinasi;
+final String statusKetersediaan;
   final String? createdAt;
   final String? updatedAt;
 
@@ -27,6 +28,7 @@ final String? vaksinasi;
     this.berat,
 this.status,
 this.vaksinasi,
+this.statusKetersediaan = 'tersedia',
     this.createdAt,
     this.updatedAt,
   });
@@ -51,6 +53,7 @@ this.vaksinasi,
     : null,
 status: json['status'],
 vaksinasi: json['vaksinasi'],
+statusKetersediaan: json['status_ketersediaan']?.toString() ?? 'tersedia',
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
     );
@@ -95,4 +98,12 @@ vaksinasi: json['vaksinasi'],
       : jenisKelamin == 'betina'
       ? 'Betina'
       : jenisKelamin;
+
+  String get statusKetersediaanLabel {
+    switch (statusKetersediaan) {
+      case 'terjual': return 'Terjual';
+      case 'mati': return 'Mati';
+      default: return 'Tersedia';
+    }
+  }
 }

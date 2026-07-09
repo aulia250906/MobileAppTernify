@@ -62,6 +62,10 @@ class Kandang extends Model
     {
         return RiwayatKandang::where('id_kandang', $this->id_kandang)
                              ->whereNull('tanggal_keluar')
+                             ->whereHas('domba', function ($q) {
+                                 $q->whereNull('deleted_at')
+                                   ->where('status_ketersediaan', 'tersedia');
+                             })
                              ->count();
     }
 }

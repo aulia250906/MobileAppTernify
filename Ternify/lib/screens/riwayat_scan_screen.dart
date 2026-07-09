@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import 'scan_log_detail_screen.dart';
 
@@ -13,6 +14,9 @@ class RiwayatScanScreen extends StatefulWidget {
 class _RiwayatScanScreenState extends State<RiwayatScanScreen> {
   String _activeFilter = 'Semua';
   final TextEditingController _searchController = TextEditingController();
+
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
 
   static const Color navyDark = Color(0xFF1A2B45);
   static const Color beigeLight = Color(0xFFFAF7F2);
@@ -89,6 +93,12 @@ Future<void> _loadScanLogs({bool reset = false}) async {
     filter: _filterParam,
     page: targetPage,
     perPage: 10,
+    dateFrom: _dateFrom != null
+        ? DateFormat('yyyy-MM-dd').format(_dateFrom!)
+        : null,
+    dateTo: _dateTo != null
+        ? DateFormat('yyyy-MM-dd').format(_dateTo!)
+        : null,
   );
 
   if (!mounted) return;
@@ -182,11 +192,16 @@ Future<void> _loadScanLogs({bool reset = false}) async {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                   child: _buildSearchBar(),
                 ),
+                if (_dateFrom != null || _dateTo != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: _buildDateRangeChip(),
+                  ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(top: 10, bottom: 10),
                   child: _buildFilterChips(),
                 ),
                 Expanded(
@@ -237,7 +252,7 @@ Future<void> _loadScanLogs({bool reset = false}) async {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '142 total scan',
+                      '$_totalScan total scan',
                       style: TextStyle(fontSize: 12.5, color: _whiteOpacity55),
                     ),
                   ],
@@ -284,7 +299,95 @@ Future<void> _loadScanLogs({bool reset = false}) async {
     );
   }
 
+  Future<void> _pickDateRange() async {
+    final result = await showDialog<DateTimeRange>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => _CalendarPopup(
+        initialFrom: _dateFrom,
+        initialTo: _dateTo,
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _dateFrom = result.start;
+        _dateTo = result.end;
+      });
+      _loadScanLogs(reset: true);
+    }
+  }
+
+  void _clearDateRange() {
+    setState(() {
+      _dateFrom = null;
+      _dateTo = null;
+    });
+    _loadScanLogs(reset: true);
+  }
+
+  Widget _buildDateRangeChip() {
+    final fmt = DateFormat('dd MMM yyyy', 'id_ID');
+    final label = _dateFrom != null && _dateTo != null
+        ? '${fmt.format(_dateFrom!)} – ${fmt.format(_dateTo!)}'
+        : _dateFrom != null
+            ? 'Dari ${fmt.format(_dateFrom!)}'
+            : 'Sampai ${fmt.format(_dateTo!)}';  
+
+    return Row(
+      children: [
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F0FE),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFB8CCE8)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.date_range, size: 14, color: navyDark),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: navyDark,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: _clearDateRange,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: navyDark.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 12,
+                      color: navyDark,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSearchBar() {
+    final bool hasDateFilter = _dateFrom != null || _dateTo != null;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -298,17 +401,50 @@ Future<void> _loadScanLogs({bool reset = false}) async {
           ),
         ],
       ),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (_) => setState(() {}),
-        style: const TextStyle(fontSize: 14, color: navyDark),
-        decoration: InputDecoration(
-          hintText: 'Cari catatan scan...',
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-          prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 20),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 13),
-        ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                _debounce?.cancel();
+                _debounce = Timer(const Duration(milliseconds: 500), () {
+                  _loadScanLogs(reset: true);
+                });
+              },
+              style: const TextStyle(fontSize: 14, color: navyDark),
+              decoration: InputDecoration(
+                hintText: 'Cari catatan scan...',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 20),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 24,
+            color: const Color(0xFFDDD8CE),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _pickDateRange,
+              borderRadius: const BorderRadius.horizontal(
+                right: Radius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                child: Icon(
+                  Icons.calendar_month_rounded,
+                  size: 22,
+                  color: hasDateFilter ? navyDark : Colors.grey.shade400,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -332,7 +468,13 @@ Future<void> _loadScanLogs({bool reset = false}) async {
           final f = filters[i];
           final isActive = _activeFilter == f['label'];
           return GestureDetector(
-            onTap: () => setState(() => _activeFilter = f['label'] as String),
+            onTap: () {
+              final newFilter = f['label'] as String;
+              if (_activeFilter != newFilter) {
+                setState(() => _activeFilter = newFilter);
+                _loadScanLogs(reset: true);
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
@@ -486,8 +628,9 @@ Widget _buildScanCard(Map<String, dynamic> item) {
   );
 }
   Widget _buildLoadMore() {
+    if (!_hasMore) return const SizedBox.shrink();
     return GestureDetector(
-      onTap: () {},
+      onTap: _isLoadingMore ? null : () => _loadScanLogs(),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -495,15 +638,488 @@ Widget _buildScanCard(Map<String, dynamic> item) {
           color: const Color(0xFFEAE4D8),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Text(
-          'Muat Lebih Banyak',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w500,
-            color: navyDark,
+        child: _isLoadingMore
+            ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+            : const Text(
+                'Muat Lebih Banyak',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: navyDark,
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// CUSTOM CALENDAR POP-UP
+// ─────────────────────────────────────────────
+
+class _CalendarPopup extends StatefulWidget {
+  final DateTime? initialFrom;
+  final DateTime? initialTo;
+
+  const _CalendarPopup({this.initialFrom, this.initialTo});
+
+  @override
+  State<_CalendarPopup> createState() => _CalendarPopupState();
+}
+
+class _CalendarPopupState extends State<_CalendarPopup>
+    with SingleTickerProviderStateMixin {
+  static const Color _navy = Color(0xFF1A2B45);
+  static const Color _beige = Color(0xFFFAF7F2);
+  static const Color _muted = Color(0xFF8A9BB0);
+
+  late DateTime _displayMonth;
+  DateTime? _from;
+  DateTime? _to;
+
+  /// true = picking "dari", false = picking "sampai"
+  bool _pickingFrom = true;
+
+  late AnimationController _animCtrl;
+  late Animation<double> _scaleAnim;
+
+  final List<String> _dayLabels = [
+    'Sen',
+    'Sel',
+    'Rab',
+    'Kam',
+    'Jum',
+    'Sab',
+    'Min',
+  ];
+
+  final List<String> _monthNames = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _from = widget.initialFrom;
+    _to = widget.initialTo;
+    _displayMonth = DateTime(
+      (_from ?? DateTime.now()).year,
+      (_from ?? DateTime.now()).month,
+    );
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _scaleAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutBack);
+    _animCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  void _prevMonth() {
+    setState(() {
+      _displayMonth = DateTime(_displayMonth.year, _displayMonth.month - 1);
+    });
+  }
+
+  void _nextMonth() {
+    final now = DateTime.now();
+    final next = DateTime(_displayMonth.year, _displayMonth.month + 1);
+    if (next.isBefore(DateTime(now.year, now.month + 1))) {
+      setState(() => _displayMonth = next);
+    }
+  }
+
+  void _onDayTap(DateTime day) {
+    setState(() {
+      if (_pickingFrom) {
+        _from = day;
+        // Auto-advance to "sampai" picker
+        _pickingFrom = false;
+        // If "to" is before "from", reset "to"
+        if (_to != null && _to!.isBefore(day)) {
+          _to = null;
+        }
+      } else {
+        if (_from != null && day.isBefore(_from!)) {
+          // If user picks a date before "from", swap
+          _to = _from;
+          _from = day;
+        } else {
+          _to = day;
+        }
+      }
+    });
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  bool _isInRange(DateTime day) {
+    if (_from == null || _to == null) return false;
+    return day.isAfter(_from!.subtract(const Duration(days: 1))) &&
+        day.isBefore(_to!.add(const Duration(days: 1)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnim,
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: _navy.withOpacity(0.18),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildHeader(),
+              _buildDateInputs(),
+              _buildMonthNav(),
+              _buildDayHeaders(),
+              _buildCalendarGrid(),
+              _buildActions(),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1A2B45), Color(0xFF243655)],
+        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.calendar_month_rounded,
+                  color: Colors.white70, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Pilih Rentang Tanggal',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  fontFamily: 'Georgia',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Filter riwayat scan berdasarkan tanggal',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withOpacity(0.55),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateInputs() {
+    final fmt = DateFormat('dd MMM yyyy', 'id_ID');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: _dateField(
+              label: 'Dari Tanggal',
+              value: _from != null ? fmt.format(_from!) : '-- --- ----',
+              isActive: _pickingFrom,
+              onTap: () => setState(() => _pickingFrom = true),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Icon(Icons.arrow_forward_rounded, size: 18, color: _muted),
+          ),
+          Expanded(
+            child: _dateField(
+              label: 'Sampai Tanggal',
+              value: _to != null ? fmt.format(_to!) : '-- --- ----',
+              isActive: !_pickingFrom,
+              onTap: () => setState(() => _pickingFrom = false),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dateField({
+    required String label,
+    required String value,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFFEEF3FA) : _beige,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive ? _navy : const Color(0xFFDDD8CE),
+            width: isActive ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: isActive ? _navy : _muted,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isActive ? _navy : const Color(0xFF5A6A7D),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthNav() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _navArrow(Icons.chevron_left_rounded, _prevMonth),
+          Text(
+            '${_monthNames[_displayMonth.month - 1]} ${_displayMonth.year}',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: _navy,
+            ),
+          ),
+          _navArrow(Icons.chevron_right_rounded, _nextMonth),
+        ],
+      ),
+    );
+  }
+
+  Widget _navArrow(IconData icon, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: _beige,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 20, color: _navy),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDayHeaders() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: _dayLabels
+            .map(
+              (d) => Expanded(
+                child: Center(
+                  child: Text(
+                    d,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _muted,
+                    ),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildCalendarGrid() {
+    final now = DateTime.now();
+    final firstOfMonth =
+        DateTime(_displayMonth.year, _displayMonth.month, 1);
+    final daysInMonth =
+        DateTime(_displayMonth.year, _displayMonth.month + 1, 0).day;
+
+    // Monday = 1
+    int startWeekday = firstOfMonth.weekday; // 1=Mon … 7=Sun
+
+    final cells = <Widget>[];
+
+    // Leading empty cells
+    for (int i = 1; i < startWeekday; i++) {
+      cells.add(const SizedBox.shrink());
+    }
+
+    for (int d = 1; d <= daysInMonth; d++) {
+      final day = DateTime(_displayMonth.year, _displayMonth.month, d);
+      final isToday = _isSameDay(day, now);
+      final isFuture = day.isAfter(now);
+      final isFrom = _from != null && _isSameDay(day, _from!);
+      final isTo = _to != null && _isSameDay(day, _to!);
+      final isEndpoint = isFrom || isTo;
+      final isInRange = _isInRange(day) && !isEndpoint;
+
+      cells.add(
+        GestureDetector(
+          onTap: isFuture ? null : () => _onDayTap(day),
+          child: Container(
+            margin: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: isEndpoint
+                  ? _navy
+                  : isInRange
+                      ? _navy.withOpacity(0.10)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: isToday && !isEndpoint
+                  ? Border.all(color: _navy, width: 1.2)
+                  : null,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$d',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight:
+                    isEndpoint || isToday ? FontWeight.w700 : FontWeight.w400,
+                color: isFuture
+                    ? _muted.withOpacity(0.4)
+                    : isEndpoint
+                        ? Colors.white
+                        : isInRange
+                            ? _navy
+                            : const Color(0xFF3A4A5C),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: GridView.count(
+        crossAxisCount: 7,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        childAspectRatio: 1.1,
+        children: cells,
+      ),
+    );
+  }
+
+  Widget _buildActions() {
+    final canApply = _from != null && _to != null;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _navy,
+                side: const BorderSide(color: Color(0xFFDDD8CE)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Text(
+                'Batal',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: canApply
+                  ? () {
+                      Navigator.of(context).pop(
+                        DateTimeRange(start: _from!, end: _to!),
+                      );
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _navy,
+                disabledBackgroundColor: _navy.withOpacity(0.3),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Terapkan',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

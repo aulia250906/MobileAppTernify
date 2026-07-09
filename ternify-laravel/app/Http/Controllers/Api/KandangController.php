@@ -117,6 +117,7 @@ class KandangController extends Controller
 
     $domba = Domba::with(['induk', 'pejantan'])
         ->where('user_id', $request->user()->id)
+        ->where('status_ketersediaan', 'tersedia')
         ->whereHas('kandangAktif', function ($q) use ($kandang) {
             $q->where('id_kandang', $kandang->id_kandang);
         })
@@ -199,21 +200,116 @@ public function assignDomba(Request $request, string $id): JsonResponse
     ]);
 }
 
+/**
+ * POST /api/kandang/{id}/remove-domba
+ * Remove domba from kandang with reason
+ * reason: 'dikeluarkan' | 'terjual' | 'mati'
+ */
+public function removeDomba(Request $request, string $id): JsonResponse
+{
+    $kandang = Kandang::where('user_id', $request->user()->id)
+        ->findOrFail($id);
+
+    $validated = $request->validate([
+        'domba_ids' => 'required|array|min:1',
+        'domba_ids.*' => 'required|string',
+        'reason' => 'required|in:dikeluarkan,terjual,mati',
+    ]);
+
+    $dombaIds = collect($validated['domba_ids'])->unique()->values();
+    $reason = $validated['reason'];
+
+    // Close riwayat_kandang for all reasons
+    $updated = RiwayatKandang::where('id_kandang', $kandang->id_kandang)
+        ->whereNull('tanggal_keluar')
+        ->whereIn('id_domba', $dombaIds)
+        ->update(['tanggal_keluar' => now()->toDateString()]);
+
+    // For 'terjual' and 'mati', also update domba status_ketersediaan
+    if (in_array($reason, ['terjual', 'mati'])) {
+        Domba::where('user_id', $request->user()->id)
+            ->whereIn('id_domba', $dombaIds)
+            ->update(['status_ketersediaan' => $reason]);
+    }
+
+    $messages = [
+        'dikeluarkan' => "{$updated} domba berhasil dikeluarkan dari kandang.",
+        'terjual' => "{$updated} domba ditandai sebagai terjual.",
+        'mati' => "{$updated} domba ditandai sebagai mati.",
+    ];
+
+    return response()->json([
+        'success' => true,
+        'message' => $messages[$reason],
+        'removed_count' => $updated,
+    ]);
+}
+
     /**
      * GET /api/kandang/statistik
      * Ringkasan kandang milik user untuk summary cards
      */
     public function statistik(Request $request): JsonResponse
     {
-        $kandang = Kandang::where('user_id', $request->user()->id)->get();
+        $userId = $request->user()->id;
+        $kandang = Kandang::where('user_id', $userId)->get();
 
         $totalDomba = $kandang->sum(fn($k) => $k->jumlah_domba);
 
+        // Total semua domba milik user (termasuk terjual & mati)
+        $totalDombaSemua = Domba::where('user_id', $userId)->count();
+
         return response()->json([
             'data' => [
-                'total_kandang' => $kandang->count(),
-                'total_domba'   => $totalDomba,
+                'total_kandang'     => $kandang->count(),
+                'total_domba'       => $totalDomba,
+                'total_domba_semua' => $totalDombaSemua,
             ]
+        ]);
+    }
+
+    /**
+     * GET /api/kandang/semua-domba
+     * List ALL domba (tersedia, terjual, mati) for the user
+     */
+    public function semuaDomba(Request $request): JsonResponse
+    {
+        $domba = Domba::where('user_id', $request->user()->id)
+            ->orderByRaw("FIELD(status_ketersediaan, 'tersedia', 'terjual', 'mati')")
+            ->latest()
+            ->get();
+
+        $result = $domba->map(function ($d) {
+            $item = [
+                'id_domba' => $d->id_domba,
+                'ear_tag' => $d->ear_tag,
+                'id_bangsa' => $d->id_bangsa,
+                'jenis_kelamin' => $d->jenis_kelamin,
+                'status' => $d->status,
+                'berat' => $d->berat,
+                'status_ketersediaan' => $d->status_ketersediaan ?? 'tersedia',
+                'updated_at' => $d->updated_at?->toDateString(),
+            ];
+
+            // For tersedia: include latest rekam medis
+            if (($d->status_ketersediaan ?? 'tersedia') === 'tersedia') {
+                $latestRekamMedis = \App\Models\RekamMedis::where('id_domba', $d->id_domba)
+                    ->orderBy('tanggal_pemeriksaan', 'desc')
+                    ->first();
+
+                $item['rekam_medis_terakhir'] = $latestRekamMedis ? [
+                    'tanggal' => $latestRekamMedis->tanggal_pemeriksaan?->format('Y-m-d'),
+                    'status_kesehatan' => $latestRekamMedis->status_kesehatan,
+                    'catatan' => $latestRekamMedis->catatan,
+                ] : null;
+            }
+
+            return $item;
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $result,
         ]);
     }
 }

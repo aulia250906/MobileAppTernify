@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../models/kandang_model.dart';
 import '../models/rekam_medis_model.dart';
 import '../models/perkawinan_model.dart';
@@ -168,7 +168,7 @@ void _showDombaKandangSheet(Kandang kandang) {
     );
   }
 
-  // ── AppBar ─────────────────────────────────────────────────────────────────
+  // â”€â”€ AppBar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildAppBar() {
     final total = _stats['total_kandang'] ?? 0;
     return Container(
@@ -250,12 +250,12 @@ void _showDombaKandangSheet(Kandang kandang) {
     );
   }
 
-  // ── Summary Cards ──────────────────────────────────────────────────────────
+  // â”€â”€ Summary Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildSummaryCards() {
     final statsDisplay = [
-      {'label': 'Total Kandang', 'value': '${_stats['total_kandang'] ?? 0}'},
-      {'label': 'Aktif', 'value': '${_stats['total_kandang'] ?? 0}'},
-      {'label': 'Total Domba', 'value': '${_stats['total_domba'] ?? 0}'},
+      {'label': 'Total Kandang', 'value': '${_stats['total_kandang'] ?? 0}', 'tappable': false},
+      {'label': 'Aktif', 'value': '${_stats['total_kandang'] ?? 0}', 'tappable': false},
+      {'label': 'Total Domba', 'value': '${_stats['total_domba_semua'] ?? _stats['total_domba'] ?? 0}', 'tappable': true},
     ];
 
     return SizedBox(
@@ -266,7 +266,8 @@ void _showDombaKandangSheet(Kandang kandang) {
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
           final isFirst = i == 0;
-          return Container(
+          final isTappable = statsDisplay[i]['tappable'] == true;
+          final card = Container(
             width: 118,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -274,7 +275,9 @@ void _showDombaKandangSheet(Kandang kandang) {
               borderRadius: BorderRadius.circular(14),
               border: isFirst
                   ? const Border(bottom: BorderSide(color: navyDark, width: 3))
-                  : null,
+                  : isTappable
+                      ? const Border(bottom: BorderSide(color: Color(0xFFFF9800), width: 3))
+                      : null,
               boxShadow: const [
                 BoxShadow(
                   color: _blackOpacity05,
@@ -286,29 +289,54 @@ void _showDombaKandangSheet(Kandang kandang) {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  statsDisplay[i]['value']!,
-                  style: const TextStyle(
-                    fontFamily: 'Georgia',
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: navyDark,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      statsDisplay[i]['value'] as String,
+                      style: const TextStyle(
+                        fontFamily: 'Georgia',
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: navyDark,
+                      ),
+                    ),
+                    if (isTappable) ...[
+                      const Spacer(),
+                      Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade400),
+                    ],
+                  ],
                 ),
                 const Spacer(),
                 Text(
-                  statsDisplay[i]['label']!,
+                  statsDisplay[i]['label'] as String,
                   style: const TextStyle(fontSize: 11.5, color: textMuted),
                 ),
               ],
             ),
           );
+
+          if (isTappable) {
+            return GestureDetector(
+              onTap: _showSemuaDombaSheet,
+              child: card,
+            );
+          }
+          return card;
         },
       ),
     );
   }
 
-  // ── Kandang Card ───────────────────────────────────────────────────────────
+  void _showSemuaDombaSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SemuaDombaSheet(kandangRepo: _repo),
+    );
+  }
+
+  // â”€â”€ Kandang Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildKandangCard(Kandang k, int index) {
     return Container(
       decoration: BoxDecoration(
@@ -350,7 +378,7 @@ void _showDombaKandangSheet(Kandang kandang) {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${k.idKandang} · ${k.tipeKandang ?? '-'}',
+                  '${k.idKandang} Â· ${k.tipeKandang ?? '-'}',
                   style: TextStyle(fontSize: 12, color: _whiteOpacity55),
                 ),
               ],
@@ -488,7 +516,7 @@ void _showDombaKandangSheet(Kandang kandang) {
     );
   }
 
-  // ── Tambah Kandang Button ──────────────────────────────────────────────────
+  // â”€â”€ Tambah Kandang Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildTambahKandang() {
     return GestureDetector(
       onTap: () => _showFormSheet(),
@@ -526,7 +554,7 @@ void _showDombaKandangSheet(Kandang kandang) {
     );
   }
 
-  // ── Form Sheet (Tambah & Edit) ─────────────────────────────────────────────
+  // â”€â”€ Form Sheet (Tambah & Edit) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   void _showFormSheet({Kandang? kandang}) {
     showModalBottomSheet(
       context: context,
@@ -561,7 +589,7 @@ void _showDombaKandangSheet(Kandang kandang) {
     );
   }
 
-  // ── Delete Dialog ──────────────────────────────────────────────────────────
+  // â”€â”€ Delete Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   void _showDeleteDialog(Kandang k) {
     showDialog(
       context: context,
@@ -855,7 +883,7 @@ class _AssignDombaSheetState extends State<_AssignDombaSheet> {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  '${d.idBangsa ?? '-'} · ${d.jenisKelaminLabel}',
+                                  '${d.idBangsa ?? '-'} Â· ${d.jenisKelaminLabel}',
                                   style: const TextStyle(color: textMuted),
                                 ),
                               );
@@ -899,7 +927,7 @@ class _AssignDombaSheetState extends State<_AssignDombaSheet> {
   }
 }
 
-// ─── Domba Kandang Sheet (Kelola Domba di Kandang) ─────────────────────────────
+// â”€â”€â”€ Domba Kandang Sheet (Kelola Domba di Kandang) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _DombaKandangSheet extends StatefulWidget {
   final Kandang kandang;
@@ -982,7 +1010,7 @@ class _DombaKandangSheetState extends State<_DombaKandangSheet> {
         },
         onDelete: () {
           Navigator.pop(context);
-          _confirmDelete(d);
+          _confirmRemoveFromKandang(d);
         },
       ),
     );
@@ -1001,8 +1029,8 @@ class _DombaKandangSheetState extends State<_DombaKandangSheet> {
     }
   }
 
-  Future<void> _confirmDelete(Domba d) async {
-    final confirm = await showDialog<bool>(
+  Future<void> _confirmRemoveFromKandang(Domba d) async {
+    final reason = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
@@ -1015,39 +1043,47 @@ class _DombaKandangSheetState extends State<_DombaKandangSheet> {
             color: navyDark,
           ),
         ),
-        content: Text(
-          'Data domba "${d.earTag}" akan dihapus secara permanen.',
-          style: const TextStyle(fontSize: 13.5, color: textMuted),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Pilih alasan:', style: TextStyle(fontSize: 12.5, color: textMuted)),
+            ),
+            const SizedBox(height: 10),
+            _simpleOption(ctx, Icons.logout_rounded, 'Keluarkan dari Kandang', const Color(0xFFFF9800), 'dikeluarkan'),
+            const SizedBox(height: 6),
+            _simpleOption(ctx, Icons.sell_outlined, 'Domba Terjual', const Color(0xFF2196F3), 'terjual'),
+            const SizedBox(height: 6),
+            _simpleOption(ctx, Icons.heart_broken_outlined, 'Domba Mati', redAccent, 'mati'),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Batal', style: TextStyle(color: textMuted)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: redAccent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 0,
-            ),
-            child: const Text('Hapus'),
           ),
         ],
       ),
     );
 
-    if (confirm == true) {
+    if (reason != null) {
       try {
-        await widget.dombaRepo.deleteDomba(d.idDomba);
+        await widget.kandangRepo.removeDombaFromKandang(
+          idKandang: widget.kandang.idKandang,
+          dombaIds: [d.idDomba],
+          reason: reason,
+        );
         if (mounted) {
           _dataChanged = true;
+          final messages = {
+            'dikeluarkan': 'Domba "${d.earTag}" berhasil dikeluarkan dari kandang.',
+            'terjual': 'Domba "${d.earTag}" ditandai sebagai terjual.',
+            'mati': 'Domba "${d.earTag}" ditandai sebagai mati.',
+          };
           AppPopup.show(
             context,
-            message: 'Domba "${d.earTag}" berhasil dihapus.',
+            message: messages[reason] ?? 'Domba berhasil diproses.',
           );
           _loadDomba();
         }
@@ -1057,6 +1093,35 @@ class _DombaKandangSheetState extends State<_DombaKandangSheet> {
         }
       }
     }
+  }
+
+  Widget _simpleOption(BuildContext ctx, IconData icon, String label, Color color, String value) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => Navigator.pop(ctx, value),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withOpacity(0.2)),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(label, style: TextStyle(
+                  fontSize: 13.5, fontWeight: FontWeight.w600, color: color,
+                )),
+              ),
+              Icon(Icons.chevron_right, size: 18, color: color.withOpacity(0.4)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -1115,7 +1180,7 @@ class _DombaKandangSheetState extends State<_DombaKandangSheet> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${_dombaList.length} domba · Sisa kapasitas: $sisaKapasitas',
+                        '${_dombaList.length} domba Â· Sisa kapasitas: $sisaKapasitas',
                         style: const TextStyle(
                           fontSize: 12.5,
                           color: textMuted,
@@ -1268,7 +1333,7 @@ class _DombaKandangSheetState extends State<_DombaKandangSheet> {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${d.idBangsa ?? '-'} · ${d.jenisKelaminLabel} · ${d.umur}',
+                    '${d.idBangsa ?? '-'} Â· ${d.jenisKelaminLabel} Â· ${d.umur}',
                     style: const TextStyle(fontSize: 12, color: textMuted),
                   ),
                 ],
@@ -1302,7 +1367,7 @@ class _DombaKandangSheetState extends State<_DombaKandangSheet> {
   }
 }
 
-// ─── Detail Domba Modal (dipakai dari Kandang) ─────────────────────────────────
+// â”€â”€â”€ Detail Domba Modal (dipakai dari Kandang) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _DetailDombaModal extends StatefulWidget {
   final Domba domba;
@@ -1492,7 +1557,7 @@ class _DetailDombaModalState2 extends State<_DetailDombaModal> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${domba.idBangsa ?? '-'} · ${domba.jenisKelaminLabel}',
+                            '${domba.idBangsa ?? '-'} Â· ${domba.jenisKelaminLabel}',
                             style: const TextStyle(
                               fontSize: 12.5,
                               color: textMuted,
@@ -1611,7 +1676,7 @@ class _DetailDombaModalState2 extends State<_DetailDombaModal> {
     );
   }
 
-  // ── Rekam Medis Section ──
+  // â”€â”€ Rekam Medis Section â”€â”€
   Widget _buildRekamMedisSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1691,7 +1756,7 @@ class _DetailDombaModalState2 extends State<_DetailDombaModal> {
         ],
         Wrap(spacing: 8, runSpacing: 8, children: [
           if (rm.berat != null) _medisChip(Icons.monitor_weight_outlined, '${rm.berat} kg'),
-          if (rm.suhuTubuh != null) _medisChip(Icons.thermostat_outlined, '${rm.suhuTubuh}°C'),
+          if (rm.suhuTubuh != null) _medisChip(Icons.thermostat_outlined, '${rm.suhuTubuh}Â°C'),
           if (rm.vaksinasi != null) _medisChip(Icons.vaccines_outlined, rm.vaksinasi!),
           if (rm.obat != null) _medisChip(Icons.medication_outlined, rm.obat!),
         ]),
@@ -1737,7 +1802,7 @@ class _DetailDombaModalState2 extends State<_DetailDombaModal> {
     );
   }
 
-  // ── Perkawinan Section ──
+  // â”€â”€ Perkawinan Section â”€â”€
   Color _kawinColor(String? s) {
     switch (s?.toLowerCase()) {
       case 'kawin': return const Color(0xFF2196F3);
@@ -1867,7 +1932,7 @@ class _DetailDombaModalState2 extends State<_DetailDombaModal> {
   }
 }
 
-// ─── Domba Form Modal (Edit domba dari Kandang) ────────────────────────────────
+// â”€â”€â”€ Domba Form Modal (Edit domba dari Kandang) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _DombaFormModal extends StatefulWidget {
   final Domba? domba;
@@ -2296,7 +2361,7 @@ class _DombaFormModalState extends State<_DombaFormModal> {
   }
 }
 
-// ─── Form Sheet Widget ────────────────────────────────────────────────────────
+// â”€â”€â”€ Form Sheet Widget â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _KandangFormSheet extends StatefulWidget {
   final Kandang? kandang;
@@ -2492,5 +2557,272 @@ class _KandangFormSheetState extends State<_KandangFormSheet> {
         ],
       ),
     );
+  }
+}
+
+// â”€â”€â”€ Semua Domba Sheet (Total Domba) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _SemuaDombaSheet extends StatefulWidget {
+  final KandangRepository kandangRepo;
+
+  const _SemuaDombaSheet({required this.kandangRepo});
+
+  @override
+  State<_SemuaDombaSheet> createState() => _SemuaDombaSheetState();
+}
+
+class _SemuaDombaSheetState extends State<_SemuaDombaSheet> {
+  static const Color navyDark = Color(0xFF1A2B45);
+  static const Color beigeLight = Color(0xFFFAF7F2);
+  static const Color textMuted = Color(0xFF8A9BB0);
+
+  bool _isLoading = true;
+  String? _error;
+  List<Map<String, dynamic>> _allDomba = [];
+  int? _expandedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final data = await widget.kandangRepo.fetchSemuaDomba();
+      if (mounted) setState(() => _allDomba = data);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Color _statusColor(String s) {
+    switch (s) { case 'terjual': return const Color(0xFF2196F3); case 'mati': return const Color(0xFFD94F4F); default: return const Color(0xFF4CAF50); }
+  }
+  Color _statusBg(String s) {
+    switch (s) { case 'terjual': return const Color(0xFFE3F2FD); case 'mati': return const Color(0xFFFDE8E8); default: return const Color(0xFFE8F5E9); }
+  }
+  String _statusLabel(String s) {
+    switch (s) { case 'terjual': return 'Terjual'; case 'mati': return 'Mati'; default: return 'Tersedia'; }
+  }
+  IconData _statusIcon(String s) {
+    switch (s) { case 'terjual': return Icons.sell_outlined; case 'mati': return Icons.heart_broken_outlined; default: return Icons.check_circle_outline; }
+  }
+  Color _genderColor(String jk) => jk == 'jantan' ? const Color(0xFF2196F3) : const Color(0xFFE91E63);
+
+  String _fmtDate(String? d) {
+    if (d == null || d.isEmpty) return '-';
+    try {
+      final dt = DateTime.parse(d);
+      const m = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+      return '${dt.day} ${m[dt.month - 1]} ${dt.year}';
+    } catch (_) { return d; }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      decoration: const BoxDecoration(
+        color: beigeLight,
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 44, height: 5, margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(color: const Color(0xFFD5CFBF), borderRadius: BorderRadius.circular(999))),
+        Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Semua Domba', style: TextStyle(fontFamily: 'Georgia', fontSize: 18, fontWeight: FontWeight.bold, color: navyDark)),
+            const SizedBox(height: 4),
+            Text('${_allDomba.length} domba terdaftar', style: const TextStyle(fontSize: 12.5, color: textMuted)),
+          ])),
+          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: navyDark)),
+        ]),
+        if (!_isLoading && _error == null && _allDomba.isNotEmpty) ...[
+          const SizedBox(height: 12), _buildStatusSummary(),
+        ],
+        const SizedBox(height: 14),
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.error_outline, size: 40, color: Colors.red),
+                      const SizedBox(height: 8),
+                      Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 12),
+                      TextButton(onPressed: _load, child: const Text('Coba Lagi')),
+                    ]))
+                  : _allDomba.isEmpty
+                      ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.pets_outlined, size: 48, color: Colors.grey.shade300),
+                          const SizedBox(height: 12),
+                          const Text('Belum ada data domba.', style: TextStyle(color: textMuted)),
+                        ]))
+                      : ListView.separated(
+                          itemCount: _allDomba.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (_, i) => _buildDombaCard(_allDomba[i], i),
+                        ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildStatusSummary() {
+    final tersedia = _allDomba.where((d) => (d['status_ketersediaan'] ?? 'tersedia') == 'tersedia').length;
+    final terjual = _allDomba.where((d) => d['status_ketersediaan'] == 'terjual').length;
+    final mati = _allDomba.where((d) => d['status_ketersediaan'] == 'mati').length;
+    return Row(children: [
+      _chipSummary('Tersedia', tersedia, const Color(0xFF4CAF50)),
+      const SizedBox(width: 8),
+      _chipSummary('Terjual', terjual, const Color(0xFF2196F3)),
+      const SizedBox(width: 8),
+      _chipSummary('Mati', mati, const Color(0xFFD94F4F)),
+    ]);
+  }
+
+  Widget _chipSummary(String label, int count, Color color) {
+    return Expanded(child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.2))),
+      child: Column(children: [
+        Text('$count', style: TextStyle(fontFamily: 'Georgia', fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 10.5, color: color, fontWeight: FontWeight.w500)),
+      ]),
+    ));
+  }
+
+  Widget _buildDombaCard(Map<String, dynamic> d, int index) {
+    final status = (d['status_ketersediaan'] ?? 'tersedia').toString();
+    final jk = (d['jenis_kelamin'] ?? '').toString();
+    final jkLabel = jk == 'jantan' ? 'Jantan' : jk == 'betina' ? 'Betina' : jk;
+    final isExpanded = _expandedIndex == index;
+
+    return GestureDetector(
+      onTap: () => setState(() => _expandedIndex = isExpanded ? null : index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: isExpanded ? Border.all(color: _statusColor(status).withOpacity(0.3), width: 1.5) : null,
+          boxShadow: [BoxShadow(color: const Color(0x0D000000), blurRadius: isExpanded ? 10 : 6, offset: const Offset(0, 2))],
+        ),
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(children: [
+              Container(width: 38, height: 38,
+                decoration: BoxDecoration(
+                  color: jk == 'jantan' ? const Color(0xFFE3F2FD) : const Color(0xFFFCE4EC),
+                  borderRadius: BorderRadius.circular(9)),
+                child: Icon(jk == 'jantan' ? Icons.male : Icons.female, size: 20, color: _genderColor(jk))),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(d['ear_tag']?.toString() ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: navyDark)),
+                const SizedBox(height: 3),
+                Text('${d['id_bangsa'] ?? '-'} Â· $jkLabel', style: const TextStyle(fontSize: 12, color: textMuted)),
+              ])),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(color: _statusBg(status), borderRadius: BorderRadius.circular(8)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(_statusIcon(status), size: 13, color: _statusColor(status)),
+                  const SizedBox(width: 4),
+                  Text(_statusLabel(status), style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _statusColor(status))),
+                ]),
+              ),
+              const SizedBox(width: 4),
+              AnimatedRotation(
+                turns: isExpanded ? 0.5 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.grey.shade400),
+              ),
+            ]),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: _buildDetail(d, status),
+            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildDetail(Map<String, dynamic> d, String status) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: _statusBg(status).withOpacity(0.5), borderRadius: BorderRadius.circular(10)),
+        child: _detailContent(d, status),
+      ),
+    );
+  }
+
+  Widget _detailContent(Map<String, dynamic> d, String status) {
+    if (status == 'terjual') {
+      return Row(children: [
+        Icon(Icons.sell_outlined, size: 16, color: _statusColor(status)),
+        const SizedBox(width: 8),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Tanggal Terjual', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor(status))),
+          const SizedBox(height: 2),
+          Text(_fmtDate(d['updated_at']?.toString()), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: navyDark)),
+        ])),
+      ]);
+    }
+    if (status == 'mati') {
+      return Row(children: [
+        Icon(Icons.heart_broken_outlined, size: 16, color: _statusColor(status)),
+        const SizedBox(width: 8),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Tanggal Kematian', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor(status))),
+          const SizedBox(height: 2),
+          Text(_fmtDate(d['updated_at']?.toString()), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: navyDark)),
+        ])),
+      ]);
+    }
+    // tersedia
+    final rm = d['rekam_medis_terakhir'] as Map<String, dynamic>?;
+    if (rm == null) {
+      return Row(children: [
+        Icon(Icons.medical_services_outlined, size: 16, color: _statusColor(status)),
+        const SizedBox(width: 8),
+        const Expanded(child: Text('Belum ada rekam medis.', style: TextStyle(fontSize: 12.5, color: textMuted))),
+      ]);
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Icon(Icons.medical_services_outlined, size: 16, color: _statusColor(status)),
+        const SizedBox(width: 8),
+        Text('Rekam Medis Terakhir', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor(status))),
+      ]),
+      const SizedBox(height: 8),
+      _dRow('Tanggal', _fmtDate(rm['tanggal']?.toString())),
+      const SizedBox(height: 4),
+      _dRow('Status', rm['status_kesehatan']?.toString() ?? '-'),
+      if (rm['catatan'] != null && rm['catatan'].toString().isNotEmpty) ...[
+        const SizedBox(height: 4),
+        _dRow('Catatan', rm['catatan'].toString()),
+      ],
+    ]);
+  }
+
+  Widget _dRow(String label, String value) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(width: 65, child: Text(label, style: const TextStyle(fontSize: 11.5, color: textMuted))),
+      const Text(' : ', style: TextStyle(fontSize: 11.5, color: textMuted)),
+      Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: navyDark))),
+    ]);
   }
 }

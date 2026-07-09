@@ -33,6 +33,14 @@ class ScanLogController extends Controller
             $query->where('akurasi_score', '<', 60);
         }
 
+        if ($dateFrom = $request->get('date_from')) {
+            $query->whereDate('tanggal_scan', '>=', $dateFrom);
+        }
+
+        if ($dateTo = $request->get('date_to')) {
+            $query->whereDate('tanggal_scan', '<=', $dateTo);
+        }
+
         $logs = $query
             ->orderByDesc('tanggal_scan')
             ->orderByDesc('created_at')

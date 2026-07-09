@@ -5,6 +5,7 @@ import '../services/ocr_api_service.dart';
 import '../services/api_service.dart';
 import '../widgets/app_popup.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'auto_scan_camera_screen.dart';
 
 class ScanCatatanScreen extends StatefulWidget {
   const ScanCatatanScreen({super.key});
@@ -73,9 +74,10 @@ final Map<String, TextEditingController> _editControllers = {};
   }
 
 Future<void> _pickFromCamera() async {
-  final XFile? image = await _picker.pickImage(
-    source: ImageSource.camera,
-    imageQuality: 85,
+  final XFile? image = await Navigator.of(context).push<XFile?>(
+    MaterialPageRoute(
+      builder: (_) => const AutoScanCameraScreen(),
+    ),
   );
 
   if (image != null) {
@@ -86,8 +88,8 @@ Future<void> _pickFromCamera() async {
 Future<void> _pickFromGallery() async {
   final XFile? image = await _picker.pickImage(
     source: ImageSource.gallery,
-    imageQuality: 85,
-  );
+    maxWidth: 2400,
+    );
 
   if (image != null) {
     await _processOCR(image);

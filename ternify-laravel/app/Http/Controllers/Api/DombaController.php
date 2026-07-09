@@ -21,6 +21,7 @@ class DombaController extends Controller
     {
 $query = Domba::with(['induk', 'pejantan', 'kandangAktif'])
     ->where('user_id', $request->user()->id)
+    ->where('status_ketersediaan', 'tersedia')
     ->whereHas('kandangAktif');
         // Filter by jenis_kelamin
         if ($request->filled('jenis_kelamin')) {
@@ -180,6 +181,7 @@ public function belumKandang(Request $request): AnonymousResourceCollection
 {
     $domba = Domba::with(['induk', 'pejantan'])
         ->where('user_id', $request->user()->id)
+        ->where('status_ketersediaan', 'tersedia')
         ->whereDoesntHave('kandangAktif')
         ->latest()
         ->get();
@@ -266,6 +268,12 @@ public function belumKandang(Request $request): AnonymousResourceCollection
     {
         $domba = Domba::where('user_id', $request->user()->id)
                       ->findOrFail($id);
+
+        // Close any active kandang assignments before deleting
+        RiwayatKandang::where('id_domba', $domba->id_domba)
+            ->whereNull('tanggal_keluar')
+            ->update(['tanggal_keluar' => now()->toDateString()]);
+
         $domba->delete();
 
         return response()->json([

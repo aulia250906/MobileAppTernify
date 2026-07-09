@@ -17,7 +17,7 @@ class Domba extends Model
 
     protected $fillable = [
         'id_domba', 'user_id', 'ear_tag', 'id_bangsa', 'jenis_kelamin',
-        'tanggal_lahir', 'berat', 'status', 'vaksinasi',
+        'tanggal_lahir', 'berat', 'status', 'vaksinasi', 'status_ketersediaan',
         'id_induk', 'id_pejantan',
     ];
 
