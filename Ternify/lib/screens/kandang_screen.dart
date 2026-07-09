@@ -1395,6 +1395,7 @@ class _DetailDombaModalState2 extends State<_DetailDombaModal> {
 
   List<RekamMedis> _rekamMedis = [];
   bool _isLoadingMedis = true;
+  bool _showAllMedis = false;
   List<Perkawinan> _perkawinan = [];
   bool _isLoadingKawin = true;
 
@@ -1696,11 +1697,18 @@ class _DetailDombaModalState2 extends State<_DetailDombaModal> {
               const SizedBox(width: 10),
               const Text('Rekam Medis', style: TextStyle(fontFamily: 'Georgia', fontSize: 15, fontWeight: FontWeight.bold, color: navyDark)),
               const Spacer(),
-              if (_rekamMedis.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(10)),
-                  child: Text('${_rekamMedis.length} catatan', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1976D2))),
+              if (_rekamMedis.length > 1)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _showAllMedis = !_showAllMedis;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(10)),
+                    child: Text(_showAllMedis ? 'Sembunyikan' : 'Lihat selengkapnya', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1976D2))),
+                  ),
                 ),
             ],
           ),
@@ -1721,12 +1729,12 @@ class _DetailDombaModalState2 extends State<_DetailDombaModal> {
             )
           else ...[
             _buildLatestMedisCard(_rekamMedis.first),
-            if (_rekamMedis.length > 1) ...[
+            if (_rekamMedis.length > 1 && _showAllMedis) ...[
               const SizedBox(height: 12),
               const Text('RIWAYAT SEBELUMNYA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.0, color: textMuted)),
               const SizedBox(height: 8),
               ...List.generate(
-                _rekamMedis.length - 1 > 5 ? 5 : _rekamMedis.length - 1,
+                _rekamMedis.length - 1,
                 (i) => _buildMedisHistoryItem(_rekamMedis[i + 1]),
               ),
             ],
@@ -2687,15 +2695,59 @@ class _SemuaDombaSheetState extends State<_SemuaDombaSheet> {
   }
 
   Widget _chipSummary(String label, int count, Color color) {
-    return Expanded(child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.2))),
-      child: Column(children: [
-        Text('$count', style: TextStyle(fontFamily: 'Georgia', fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-        const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 10.5, color: color, fontWeight: FontWeight.w500)),
-      ]),
-    ));
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8E3DA)),
+          boxShadow: [
+            BoxShadow(
+              color: navyDark.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
+        child: Column(
+          children: [
+            Text(
+              '$count',
+              style: const TextStyle(
+                fontFamily: 'Georgia',
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: navyDark,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    color: textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildDombaCard(Map<String, dynamic> d, int index) {
@@ -2706,53 +2758,116 @@ class _SemuaDombaSheetState extends State<_SemuaDombaSheet> {
 
     return GestureDetector(
       onTap: () => setState(() => _expandedIndex = isExpanded ? null : index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: isExpanded ? Border.all(color: _statusColor(status).withOpacity(0.3), width: 1.5) : null,
-          boxShadow: [BoxShadow(color: const Color(0x0D000000), blurRadius: isExpanded ? 10 : 6, offset: const Offset(0, 2))],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isExpanded ? _statusColor(status).withOpacity(0.5) : const Color(0xFFF0EBE1),
+            width: isExpanded ? 1.5 : 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x08000000),
+              blurRadius: isExpanded ? 12 : 6,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
-        child: Column(children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(children: [
-              Container(width: 38, height: 38,
-                decoration: BoxDecoration(
-                  color: jk == 'jantan' ? const Color(0xFFE3F2FD) : const Color(0xFFFCE4EC),
-                  borderRadius: BorderRadius.circular(9)),
-                child: Icon(jk == 'jantan' ? Icons.male : Icons.female, size: 20, color: _genderColor(jk))),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(d['ear_tag']?.toString() ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: navyDark)),
-                const SizedBox(height: 3),
-                Text('${d['id_bangsa'] ?? '-'} Â· $jkLabel', style: const TextStyle(fontSize: 12, color: textMuted)),
-              ])),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: _statusBg(status), borderRadius: BorderRadius.circular(8)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(_statusIcon(status), size: 13, color: _statusColor(status)),
-                  const SizedBox(width: 4),
-                  Text(_statusLabel(status), style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _statusColor(status))),
-                ]),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  // Sleek Minimal Avatar
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FA),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE8E3DA)),
+                    ),
+                    child: Icon(
+                      jk == 'jantan' ? Icons.male : Icons.female,
+                      size: 20,
+                      color: _genderColor(jk),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  
+                  // Text Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          d['ear_tag']?.toString() ?? '-',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: navyDark,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${d['id_bangsa'] ?? '-'} · $jkLabel',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Modern Status Indicator & Dropdown
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _statusBg(status),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _statusLabel(status),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: _statusColor(status),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      AnimatedRotation(
+                        turns: isExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 20,
+                          color: textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(width: 4),
-              AnimatedRotation(
-                turns: isExpanded ? 0.5 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.grey.shade400),
-              ),
-            ]),
-          ),
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: _buildDetail(d, status),
-            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
-          ),
-        ]),
+            ),
+            AnimatedCrossFade(
+              firstChild: const SizedBox.shrink(),
+              secondChild: _buildDetail(d, status),
+              crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 200),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2760,69 +2875,115 @@ class _SemuaDombaSheetState extends State<_SemuaDombaSheet> {
   Widget _buildDetail(Map<String, dynamic> d, String status) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: _statusBg(status).withOpacity(0.5), borderRadius: BorderRadius.circular(10)),
-        child: _detailContent(d, status),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Column(
+        children: [
+          const Divider(height: 1, color: Color(0xFFF0EBE1)),
+          const SizedBox(height: 12),
+          _detailContent(d, status),
+        ],
       ),
     );
   }
 
   Widget _detailContent(Map<String, dynamic> d, String status) {
     if (status == 'terjual') {
-      return Row(children: [
-        Icon(Icons.sell_outlined, size: 16, color: _statusColor(status)),
-        const SizedBox(width: 8),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Tanggal Terjual', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor(status))),
-          const SizedBox(height: 2),
-          Text(_fmtDate(d['updated_at']?.toString()), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: navyDark)),
-        ])),
-      ]);
+      return _buildExpandedInfoRow(
+        icon: Icons.sell_outlined,
+        color: _statusColor(status),
+        title: 'Tanggal Terjual',
+        value: _fmtDate(d['updated_at']?.toString()),
+      );
     }
     if (status == 'mati') {
-      return Row(children: [
-        Icon(Icons.heart_broken_outlined, size: 16, color: _statusColor(status)),
-        const SizedBox(width: 8),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Tanggal Kematian', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor(status))),
-          const SizedBox(height: 2),
-          Text(_fmtDate(d['updated_at']?.toString()), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: navyDark)),
-        ])),
-      ]);
+      return _buildExpandedInfoRow(
+        icon: Icons.heart_broken_outlined,
+        color: _statusColor(status),
+        title: 'Tanggal Kematian',
+        value: _fmtDate(d['updated_at']?.toString()),
+      );
     }
+    
     // tersedia
     final rm = d['rekam_medis_terakhir'] as Map<String, dynamic>?;
     if (rm == null) {
-      return Row(children: [
-        Icon(Icons.medical_services_outlined, size: 16, color: _statusColor(status)),
-        const SizedBox(width: 8),
-        const Expanded(child: Text('Belum ada rekam medis.', style: TextStyle(fontSize: 12.5, color: textMuted))),
-      ]);
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.description_outlined, size: 16, color: textMuted),
+          SizedBox(width: 8),
+          Text(
+            'Belum ada rekam medis.',
+            style: TextStyle(fontSize: 12, color: textMuted, fontStyle: FontStyle.italic),
+          ),
+        ],
+      );
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Icon(Icons.medical_services_outlined, size: 16, color: _statusColor(status)),
-        const SizedBox(width: 8),
-        Text('Rekam Medis Terakhir', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor(status))),
-      ]),
-      const SizedBox(height: 8),
-      _dRow('Tanggal', _fmtDate(rm['tanggal']?.toString())),
-      const SizedBox(height: 4),
-      _dRow('Status', rm['status_kesehatan']?.toString() ?? '-'),
-      if (rm['catatan'] != null && rm['catatan'].toString().isNotEmpty) ...[
-        const SizedBox(height: 4),
-        _dRow('Catatan', rm['catatan'].toString()),
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.medical_services_outlined, size: 16, color: _statusColor(status)),
+            const SizedBox(width: 8),
+            Text(
+              'Rekam Medis Terakhir',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _statusColor(status), letterSpacing: 0.5),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _dRow('Tanggal', _fmtDate(rm['tanggal']?.toString())),
+        _dRow('Status', rm['status_kesehatan']?.toString() ?? '-'),
+        if (rm['catatan'] != null && rm['catatan'].toString().isNotEmpty)
+          _dRow('Catatan', rm['catatan'].toString()),
       ],
-    ]);
+    );
+  }
+
+  Widget _buildExpandedInfoRow({required IconData icon, required Color color, required String title, required String value}) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(icon, size: 16, color: color),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textMuted)),
+              const SizedBox(height: 2),
+              Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: navyDark)),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _dRow(String label, String value) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SizedBox(width: 65, child: Text(label, style: const TextStyle(fontSize: 11.5, color: textMuted))),
-      const Text(' : ', style: TextStyle(fontSize: 11.5, color: textMuted)),
-      Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: navyDark))),
-    ]);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text(label, style: const TextStyle(fontSize: 11.5, color: textMuted)),
+          ),
+          const Text(' : ', style: TextStyle(fontSize: 11.5, color: textMuted)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: navyDark),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

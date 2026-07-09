@@ -156,7 +156,9 @@ Future<List<Domba>> fetchBelumKandang() async {
             'jenis_kelamin': e['jenis_kelamin'],
             'tanggal_lahir': e['tanggal_lahir'],
             'id_induk': e['id_induk'],
+            'ear_tag_induk': e['ear_tag_induk'],
             'id_pejantan': e['id_pejantan'],
+            'ear_tag_pejantan': e['ear_tag_pejantan'],
             'created_at': e['created_at'],
             'updated_at': e['updated_at'],
           };
@@ -182,7 +184,9 @@ Future<List<Domba>> fetchBelumKandang() async {
         'jenis_kelamin': item['jenis_kelamin'],
         'tanggal_lahir': item['tanggal_lahir'],
         'id_induk': item['id_induk'],
+        'ear_tag_induk': item['ear_tag_induk'],
         'id_pejantan': item['id_pejantan'],
+        'ear_tag_pejantan': item['ear_tag_pejantan'],
       };
 
       print('[SYNC DOMBA] Kirim local_id=$localId payload=$payload');
@@ -221,7 +225,9 @@ Future<List<Domba>> fetchBelumKandang() async {
       jenisKelamin: map['jenis_kelamin']?.toString() ?? '',
       tanggalLahir: map['tanggal_lahir']?.toString(),
       idInduk: map['id_induk']?.toString(),
+      earTagInduk: map['ear_tag_induk']?.toString(),
       idPejantan: map['id_pejantan']?.toString(),
+      earTagPejantan: map['ear_tag_pejantan']?.toString(),
       createdAt: map['created_at']?.toString(),
       updatedAt: map['updated_at']?.toString(),
     );

@@ -318,32 +318,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildSummaryCards() {
-    final List<Map<String, dynamic>> stats = [
-      {
-        'value': '$_totalDomba',
-        'label': 'Total Domba',
-        'sub': '♂ $_totalJantan   ♀ $_totalBetina',
-        'subColor': const Color(0xFF4CAF50),
-        'route': '/kandang',
-      },
-      {
-        'value': '$_totalKandang',
-        'label': 'Kandang Aktif',
-        'sub': _totalKandang > 0 ? '✓ aktif' : '— kosong',
-        'subColor': const Color(0xFF4CAF50),
-        'route': '/kandang',
-      },
-      {
-        'value': '$_statusSakit',
-        'label': 'Perlu Perhatian',
-        'sub': _statusSakit > 0 ? '⚠ domba sakit' : '✓ semua sehat',
-        'subColor': _statusSakit > 0
-            ? const Color(0xFFFF9800)
-            : const Color(0xFF4CAF50),
-        'route': '/kandang',
-      },
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -356,68 +330,121 @@ class _DashboardScreenState extends State<DashboardScreen> {
             color: navyDark,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         SizedBox(
-          height: 110,
-          child: ListView.separated(
+          height: 125,
+          child: ListView(
             scrollDirection: Axis.horizontal,
-            itemCount: stats.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 10),
-            itemBuilder: (context, i) {
-              final s = stats[i];
-              return GestureDetector(
-                onTap: () => Navigator.pushNamed(context, s['route'] as String),
-                child: Container(
-                  width: 120,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: cardWhite,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: _blackOpacity05,
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        s['value'],
-                        style: const TextStyle(
-                          fontFamily: 'Georgia',
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: navyDark,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        s['label'],
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          color: textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        s['sub'],
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          color: s['subColor'],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+            physics: const BouncingScrollPhysics(),
+            clipBehavior: Clip.none,
+            children: [
+              // Card 1: Total Domba
+              _buildMetricCard(
+                title: 'Total Domba',
+                value: '$_totalDomba',
+                icon: Icons.pets_outlined,
+                iconColor: const Color(0xFF1E88E5), // Professional Blue
+                subtext: '$_totalJantan Jantan  •  $_totalBetina Betina',
+                subtextColor: const Color(0xFF667085),
+              ),
+              const SizedBox(width: 12),
+              
+              // Card 2: Kandang
+              _buildMetricCard(
+                title: 'Kandang Aktif',
+                value: '$_totalKandang',
+                icon: Icons.home_work_outlined,
+                iconColor: const Color(0xFF039855), // Professional Green
+                subtext: _totalKandang > 0 ? 'Sedang digunakan' : 'Data kosong',
+                subtextColor: _totalKandang > 0 ? const Color(0xFF039855) : const Color(0xFF667085),
+              ),
+              const SizedBox(width: 12),
+
+              // Card 3: Perawatan
+              _buildMetricCard(
+                title: 'Perhatian Khusus',
+                value: '$_statusSakit',
+                icon: _statusSakit > 0 ? Icons.error_outline : Icons.check_circle_outline,
+                iconColor: _statusSakit > 0 ? const Color(0xFFD92D20) : const Color(0xFF039855), // Red / Green
+                subtext: _statusSakit > 0 ? 'Domba butuh dicek' : 'Semua ternak sehat',
+                subtextColor: _statusSakit > 0 ? const Color(0xFFD92D20) : const Color(0xFF039855),
+              ),
+              const SizedBox(width: 16),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMetricCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    required String subtext,
+    required Color subtextColor,
+  }) {
+    return Container(
+      width: 160,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEAECF0), width: 1.5), // Clean thin grey border
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x05000000), // Barely visible shadow for depth
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF475467), // Modern grey text
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(icon, size: 18, color: iconColor),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.bold,
+              color: navyDark, // Keeping app identity
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtext,
+            style: TextStyle(
+              color: subtextColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 

@@ -205,14 +205,40 @@ Future<void> _loadScanLogs({bool reset = false}) async {
                   child: _buildFilterChips(),
                 ),
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                    children: [
-                      ..._filteredItems.map((item) => _buildScanCard(item)),
-                      const SizedBox(height: 12),
-                      _buildLoadMore(),
-                    ],
-                  ),
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(color: navyDark),
+                        )
+                      : _filteredItems.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.menu_book_rounded,
+                                    size: 48,
+                                    color: textMuted.withOpacity(0.4),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Data scan tidak ditemukan',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                              children: [
+                                ..._filteredItems.map((item) => _buildScanCard(item)),
+                                const SizedBox(height: 12),
+                                _buildLoadMore(),
+                              ],
+                            ),
                 ),
               ],
             ),

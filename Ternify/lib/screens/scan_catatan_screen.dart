@@ -152,8 +152,13 @@ void _disposeControllers() {
 }
 
 /// Get the edited details (from controllers, not raw OCR)
+/// Empty strings are converted back to null so that ?? chains
+/// in payload builders work correctly.
 Map<String, dynamic> _getEditedDetails() {
-  return _editControllers.map((key, ctrl) => MapEntry(key, ctrl.text.trim()));
+  return _editControllers.map((key, ctrl) {
+    final v = ctrl.text.trim();
+    return MapEntry(key, v.isEmpty ? null : v);
+  });
 }
 
 @override
@@ -222,12 +227,13 @@ Future<void> _saveScanResult() async {
 
   // ── Detect type: Rekam Medis or Data Domba ──
 
-  final isRekamMedis = _isRekamMedisForm(formType, details);
-  final isDataDomba = !isRekamMedis &&
+final isRekamMedis = _isRekamMedisForm(formType, details);
+  final isPerkawinan = formType.toLowerCase().contains('perkawinan');
+  final isDataDomba = !isRekamMedis && !isPerkawinan &&
       (details.containsKey('ear_tag') || formType.toLowerCase().contains('domba'));
 
-  try {
-    // Handle Rekam Medis scan
+try {
+    // 1. Handle Rekam Medis scan
     if (isRekamMedis) {
       final earTag = details['ear_tag']?.toString().trim();
 
@@ -245,7 +251,7 @@ Future<void> _saveScanResult() async {
       await ApiService.createRekamMedis(medisPayload);
     }
 
-    // Handle Data Domba scan
+// 2. Handle Data Domba scan
     if (isDataDomba) {
       final dombaPayload = _buildDombaPayloadFromScan(details);
 
@@ -265,6 +271,23 @@ Future<void> _saveScanResult() async {
       await ApiService.createDombaFromScan(dombaPayload);
     }
 
+// 3. Handle Perkawinan scan
+    if (isPerkawinan) {
+      final perkawinanPayload = _buildPerkawinanPayloadFromScan(details);
+
+      if (perkawinanPayload['ear_tag_betina'] == null ||
+          perkawinanPayload['ear_tag_jantan'] == null) {
+        setState(() => _isSaving = false);
+        AppPopup.show(
+          context,
+          message: 'Data perkawinan belum lengkap. Ear tag induk dan pejantan wajib terdeteksi.',
+          isError: true,
+        );
+        return;
+      }
+
+      await ApiService.createPerkawinan(perkawinanPayload);
+    }
     // Always save to scan log
     final response = await ApiService.createScanLog(payload: payload);
 
@@ -328,7 +351,7 @@ Map<String, dynamic> _buildRekamMedisPayloadFromScan(Map<String, dynamic> detail
     'tanggal_pemeriksaan': details['tanggal_pemeriksaan'] ??
         details['tanggal'] ??
         _todayForApi(),
-    'berat': parseNumeric(details['berat']),
+    'berat': parseNumeric(details['berat_badan'] ?? details['berat']),
     'suhu_tubuh': parseNumeric(details['suhu_tubuh'] ?? details['suhu']),
     'status_kesehatan': details['status_kondisi'] ??
         details['status_kesehatan'] ??
@@ -343,45 +366,91 @@ Map<String, dynamic> _buildRekamMedisPayloadFromScan(Map<String, dynamic> detail
 }
 
 Map<String, dynamic> _buildDombaPayloadFromScan(Map<String, dynamic> details) {
-  String? normalizeGender(dynamic value) {
-    final raw = value?.toString().trim().toLowerCase();
+  // Helper: return null for null or empty-string values
+  String? val(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString().trim();
+    return s.isEmpty ? null : s;
+  }
 
-    if (raw == null || raw.isEmpty) return null;
+  String? normalizeGender(dynamic value) {
+    final raw = val(value)?.toLowerCase();
+    if (raw == null) return null;
 
     if (raw.contains('jantan') || raw == 'male') {
       return 'jantan';
     }
-
     if (raw.contains('betina') || raw == 'female') {
       return 'betina';
     }
-
     return raw;
   }
 
   double? parseBerat(dynamic value) {
     if (value == null) return null;
-
     final cleaned = value
         .toString()
         .replaceAll('kg', '')
         .replaceAll('KG', '')
         .replaceAll(',', '.')
         .trim();
-
     return double.tryParse(cleaned);
   }
 
+  // Resolve induk: try multiple possible OCR keys
+  final indukRef = val(details['id_induk'])
+      ?? val(details['induk'])
+      ?? val(details['ear_tag_induk'])
+      ?? val(details['eartag_induk'])
+      ?? val(details['tag_induk']);
+
+  // Resolve pejantan: try multiple possible OCR keys
+  final pejantanRef = val(details['id_pejantan'])
+      ?? val(details['pejantan'])
+      ?? val(details['id_jantan'])
+      ?? val(details['jantan'])
+      ?? val(details['ear_tag_pejantan'])
+      ?? val(details['eartag_pejantan'])
+      ?? val(details['ear_tag_jantan'])
+      ?? val(details['eartag_jantan'])
+      ?? val(details['tag_pejantan'])
+      ?? val(details['tag_jantan']);
+
   return {
-    'ear_tag': details['ear_tag']?.toString().trim(),
-    'id_bangsa': details['id_bangsa'] ??
-        details['ras'] ??
-        details['jenis_domba'],
+    'ear_tag': val(details['ear_tag']),
+    'id_bangsa': val(details['id_bangsa'])
+        ?? val(details['ras'])
+        ?? val(details['jenis_domba']),
     'jenis_kelamin': normalizeGender(details['jenis_kelamin']),
-    'tanggal_lahir': details['tanggal_lahir'],
-    'berat': parseBerat(details['berat']),
-    'status': details['status'] ?? 'Sehat',
-    'vaksinasi': details['vaksinasi'],
+    'tanggal_lahir': val(details['tanggal_lahir']),
+    'id_induk': indukRef,
+    'ear_tag_induk': indukRef,
+    'id_pejantan': pejantanRef,
+    'ear_tag_pejantan': pejantanRef,
+    'berat': parseBerat(details['berat_badan'] ?? details['berat']),
+    'status': val(details['status']) ?? 'Sehat',
+    'vaksinasi': val(details['vaksinasi']),
+  };
+}
+
+Map<String, dynamic> _buildPerkawinanPayloadFromScan(Map<String, dynamic> details) {
+  // Helper: return null for null or empty-string values
+  String? val(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString().trim();
+    return s.isEmpty ? null : s;
+  }
+
+  // Bridging OCR output keys (induk/pejantan) ke Backend expectation (betina/jantan)
+  final betinaRef = val(details['ear_tag_induk']) ?? val(details['induk']);
+  final jantanRef = val(details['ear_tag_pejantan']) ?? val(details['ear_tag_jantan']) ?? val(details['pejantan']);
+
+  return {
+    'ear_tag_betina': betinaRef,
+    'ear_tag_jantan': jantanRef,
+    'tanggal_kawin': val(details['tanggal_perkawinan']) ?? _todayForApi(),
+    'status_perkawinan': val(details['status_kebuntingan']) ?? 'kawin',
+    'catatan': val(details['catatan']),
   };
 }
 
@@ -621,91 +690,85 @@ Map<String, dynamic> _buildDombaPayloadFromScan(Map<String, dynamic> details) {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image thumbnail
+          // Header Info
+          const Text(
+            'Foto Catatan',
+            style: TextStyle(
+              fontFamily: 'Georgia',
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: navyDark,
+            ),
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Ganti foto untuk scan ulang',
+            style: TextStyle(fontSize: 12, color: textMuted),
+          ),
+          const SizedBox(height: 12),
+          // Large Image
           Container(
-            width: 72,
-            height: 72,
+            width: double.infinity,
+            height: 220,
             decoration: BoxDecoration(
               color: const Color(0xFFF5F0E8),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFFE8E3DA)),
             ),
-child: _pickedImage != null
+            child: _pickedImage != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(9),
                     child: kIsWeb
-                        // Gunakan Image.network jika berjalan di Web (Chrome)
                         ? Image.network(
                             _pickedImage!.path,
-                            width: 72,
-                            height: 72,
+                            width: double.infinity,
+                            height: 220,
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => const Icon(
                               Icons.image_outlined,
-                              size: 28,
+                              size: 40,
                               color: Color(0xFF8A9BB0),
                             ),
                           )
-                        // Gunakan Image.file jika berjalan di Android fisik
                         : Image.file(
                             File(_pickedImage!.path),
-                            width: 72,
-                            height: 72,
+                            width: double.infinity,
+                            height: 220,
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => const Icon(
                               Icons.image_outlined,
-                              size: 28,
+                              size: 40,
                               color: Color(0xFF8A9BB0),
                             ),
                           ),
                   )
                 : const Icon(
                     Icons.image_outlined,
-                    size: 28,
+                    size: 40,
                     color: Color(0xFF8A9BB0),
-                  ),          ),
-          const SizedBox(width: 12),
-          // Info + buttons
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Foto Catatan',
-                  style: TextStyle(
-                    fontFamily: 'Georgia',
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: navyDark,
                   ),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Ganti foto untuk scan ulang',
-                  style: TextStyle(fontSize: 11.5, color: textMuted),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _buildMiniButton(
-                      icon: Icons.photo_library_outlined,
-                      label: 'Galeri',
-                      onTap: _pickFromGallery,
-                      filled: false,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildMiniButton(
-                      icon: Icons.camera_alt_outlined,
-                      label: 'Kamera',
-                      onTap: _pickFromCamera,
-                      filled: true,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          ),
+          const SizedBox(height: 14),
+          // Buttons
+          Row(
+            children: [
+              _buildMiniButton(
+                icon: Icons.photo_library_outlined,
+                label: 'Galeri',
+                onTap: _pickFromGallery,
+                filled: false,
+              ),
+              const SizedBox(width: 10),
+              _buildMiniButton(
+                icon: Icons.document_scanner_outlined,
+                label: 'Scan Auto',
+                onTap: _pickFromCamera,
+                filled: true,
+              ),
+            ],
           ),
         ],
       ),
@@ -777,6 +840,16 @@ child: _pickedImage != null
     'jenis_kelamin': {'label': 'Jenis Kelamin', 'icon': Icons.wc_outlined, 'hint': 'Jantan atau betina'},
     'ras': {'label': 'Ras / Jenis', 'icon': Icons.category_outlined, 'hint': 'Jenis ras domba'},
     'id_kandang': {'label': 'ID Kandang', 'icon': Icons.house_outlined, 'hint': 'Lokasi kandang'},
+    // Induk & Pejantan — keys returned by OCR service
+    'ear_tag_induk': {'label': 'Ear Tag Induk', 'icon': Icons.female_outlined, 'hint': 'Ear tag domba induk (betina)'},
+    'ear_tag_jantan': {'label': 'Ear Tag Pejantan', 'icon': Icons.male_outlined, 'hint': 'Ear tag domba pejantan (jantan)'},
+    'ear_tag_pejantan': {'label': 'Ear Tag Pejantan', 'icon': Icons.male_outlined, 'hint': 'Ear tag domba pejantan (jantan)'},
+    'induk': {'label': 'Induk', 'icon': Icons.female_outlined, 'hint': 'Identitas domba induk'},
+    'pejantan': {'label': 'Pejantan', 'icon': Icons.male_outlined, 'hint': 'Identitas domba pejantan'},
+    'id_induk': {'label': 'ID Induk', 'icon': Icons.female_outlined, 'hint': 'ID domba induk'},
+    'id_pejantan': {'label': 'ID Pejantan', 'icon': Icons.male_outlined, 'hint': 'ID domba pejantan'},
+    'jenis_domba': {'label': 'Jenis Domba', 'icon': Icons.category_outlined, 'hint': 'Jenis/ras domba'},
+    'tanggal_lahir': {'label': 'Tanggal Lahir', 'icon': Icons.cake_outlined, 'hint': 'Tanggal lahir domba'},
   };
 
   String _getFieldLabel(String key) {
@@ -866,10 +939,6 @@ child: _pickedImage != null
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── 1. Status Banner ──
-        _buildStatusBanner(confidenceValue, confColor),
-        const SizedBox(height: 16),
-
         // ── 2. Ringkasan Scan ──
         _buildScanSummaryCard(formType, details.length, confidenceValue, confColor),
         const SizedBox(height: 16),
@@ -1622,7 +1691,7 @@ class _SourcePickerSheet extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Ambil dari kamera atau pilih gambar dari galeri ponsel Anda.',
+              'Arahkan kamera ke tabel untuk scan otomatis, atau pilih gambar dari galeri.',
               style: TextStyle(fontSize: 13, color: textMuted, height: 1.4),
             ),
           ),
@@ -1635,7 +1704,7 @@ class _SourcePickerSheet extends StatelessWidget {
                 child: _buildOptionTile(
                   icon: Icons.camera_alt_rounded,
                   label: 'Kamera',
-                  subtitle: 'Ambil foto langsung',
+                  subtitle: 'Deteksi tabel otomatis',
                   color: const Color(0xFF3A7BF7),
                   onTap: onCameraTap,
                 ),

@@ -83,7 +83,8 @@ class PerkawinanController extends Controller
         ]);
 
         // Update status domba betina menjadi bunting jika perlu
-        if ($betina && in_array(strtolower($request->status_perkawinan ?? 'kawin'), ['bunting'])) {
+        $statusKawinStr = strtolower($request->status_perkawinan ?? 'kawin');
+        if ($betina && \Illuminate\Support\Str::contains($statusKawinStr, 'bunting')) {
             $betina->update(['status' => 'Bunting']);
         }
 
@@ -123,15 +124,11 @@ class PerkawinanController extends Controller
         if ($request->filled('status_perkawinan') && $record->id_domba_betina) {
             $betina = Domba::find($record->id_domba_betina);
             if ($betina) {
-                $statusMap = [
-                    'bunting' => 'Bunting',
-                    'lahir'  => 'Sehat',
-                    'gagal'  => 'Sehat',
-                    'kawin'  => 'Sehat',
-                ];
-                $mapped = $statusMap[strtolower($request->status_perkawinan)] ?? null;
-                if ($mapped) {
-                    $betina->update(['status' => $mapped]);
+                $statusReq = strtolower($request->status_perkawinan);
+                if (\Illuminate\Support\Str::contains($statusReq, 'bunting')) {
+                    $betina->update(['status' => 'Bunting']);
+                } elseif (\Illuminate\Support\Str::contains($statusReq, ['lahir', 'gagal', 'kawin'])) {
+                    $betina->update(['status' => 'Sehat']);
                 }
             }
         }

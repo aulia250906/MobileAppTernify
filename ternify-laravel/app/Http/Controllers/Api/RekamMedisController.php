@@ -80,18 +80,14 @@ class RekamMedisController extends Controller
                 $updates['berat'] = $request->berat;
             }
             if ($request->filled('status_kesehatan')) {
-                // Map to domba status enum
-                $statusMap = [
-                    'sehat'           => 'Sehat',
-                    'sakit'           => 'Sakit',
-                    'bunting'         => 'Bunting',
-                    'dalam perawatan' => 'Sakit',
-                    'perawatan'       => 'Sakit',
-                    'karantina'       => 'Sakit',
-                ];
-                $mappedStatus = $statusMap[strtolower($request->status_kesehatan)] ?? null;
-                if ($mappedStatus) {
-                    $updates['status'] = $mappedStatus;
+                $statusKesehatanStr = strtolower($request->status_kesehatan);
+                if (\Illuminate\Support\Str::contains($statusKesehatanStr, 'bunting')) {
+                    $updates['status'] = 'Bunting';
+                } elseif (\Illuminate\Support\Str::contains($statusKesehatanStr, 'sehat')) {
+                    $updates['status'] = 'Sehat';
+                } else {
+                    // Any other status in a medical record implies sick
+                    $updates['status'] = 'Sakit';
                 }
             }
             if ($request->filled('vaksinasi')) {

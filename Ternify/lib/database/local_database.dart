@@ -23,7 +23,12 @@ class LocalDatabase {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -36,7 +41,9 @@ class LocalDatabase {
         jenis_kelamin TEXT NOT NULL,
         tanggal_lahir TEXT,
         id_induk TEXT,
+        ear_tag_induk TEXT,
         id_pejantan TEXT,
+        ear_tag_pejantan TEXT,
         sync_status TEXT NOT NULL DEFAULT 'pending',
         last_sync_at TEXT,
         created_at TEXT,
@@ -56,6 +63,13 @@ class LocalDatabase {
     ''');
   }
 
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE local_domba ADD COLUMN ear_tag_induk TEXT');
+      await db.execute('ALTER TABLE local_domba ADD COLUMN ear_tag_pejantan TEXT');
+    }
+  }
+
   // ─────────────────────────────────────────────
   // INSERT DATA LOKAL
   // ─────────────────────────────────────────────
@@ -72,7 +86,9 @@ class LocalDatabase {
       'jenis_kelamin': data['jenis_kelamin'],
       'tanggal_lahir': data['tanggal_lahir'],
       'id_induk': data['id_induk'],
+      'ear_tag_induk': data['ear_tag_induk'],
       'id_pejantan': data['id_pejantan'],
+      'ear_tag_pejantan': data['ear_tag_pejantan'],
       'sync_status': data['sync_status'] ?? 'pending',
       'created_at': data['created_at'] ?? now,
       'updated_at': data['updated_at'] ?? now,
@@ -155,7 +171,9 @@ class LocalDatabase {
       'jenis_kelamin': data['jenis_kelamin'],
       'tanggal_lahir': data['tanggal_lahir'],
       'id_induk': data['id_induk'],
+      'ear_tag_induk': data['ear_tag_induk'],
       'id_pejantan': data['id_pejantan'],
+      'ear_tag_pejantan': data['ear_tag_pejantan'],
       'sync_status': 'synced',
       'last_sync_at': now,
       'updated_at': now,
@@ -222,7 +240,9 @@ class LocalDatabase {
         'jenis_kelamin': data['jenis_kelamin'],
         'tanggal_lahir': data['tanggal_lahir'],
         'id_induk': data['id_induk'],
+        'ear_tag_induk': data['ear_tag_induk'],
         'id_pejantan': data['id_pejantan'],
+        'ear_tag_pejantan': data['ear_tag_pejantan'],
         'sync_status': 'pending',
         'updated_at': now,
       },

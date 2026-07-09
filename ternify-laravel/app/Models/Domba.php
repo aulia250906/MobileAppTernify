@@ -11,26 +11,29 @@ class Domba extends Model
     use SoftDeletes;
 
     protected $table = 'domba';
+
     protected $primaryKey = 'id_domba';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
         'id_domba', 'user_id', 'ear_tag', 'id_bangsa', 'jenis_kelamin',
         'tanggal_lahir', 'berat', 'status', 'vaksinasi', 'status_ketersediaan',
-        'id_induk', 'id_pejantan',
+        'id_induk', 'ear_tag_induk', 'id_pejantan', 'ear_tag_pejantan',
     ];
 
     protected $casts = [
         'tanggal_lahir' => 'date',
-        'berat'         => 'float',
+        'berat' => 'float',
     ];
 
     protected static function booted(): void
     {
         static::creating(function (Domba $domba) {
             if (empty($domba->id_domba)) {
-                $domba->id_domba = 'DMB-' . strtoupper(Str::random(8));
+                $domba->id_domba = 'DMB-'.strtoupper(Str::random(8));
             }
         });
     }
@@ -56,43 +59,43 @@ class Domba extends Model
     public function riwayatBerat()
     {
         return $this->hasMany(RiwayatBerat::class, 'id_domba', 'id_domba')
-                    ->orderBy('tanggal', 'asc')
-                    ->limit(5);
+            ->orderBy('tanggal', 'asc')
+            ->limit(5);
     }
 
     // Riwayat kandang
     public function riwayatKandang()
     {
         return $this->hasMany(RiwayatKandang::class, 'id_domba', 'id_domba')
-                    ->orderBy('tanggal_masuk', 'desc');
+            ->orderBy('tanggal_masuk', 'desc');
     }
 
     // Kandang aktif saat ini (tanggal_keluar null)
     public function kandangAktif()
     {
         return $this->hasOne(RiwayatKandang::class, 'id_domba', 'id_domba')
-                    ->whereNull('tanggal_keluar')
-                    ->latest('tanggal_masuk');
+            ->whereNull('tanggal_keluar')
+            ->latest('tanggal_masuk');
     }
 
     // Rekam medis
     public function rekamMedis()
     {
         return $this->hasMany(RekamMedis::class, 'id_domba', 'id_domba')
-                    ->orderBy('tanggal_pemeriksaan', 'desc');
+            ->orderBy('tanggal_pemeriksaan', 'desc');
     }
 
     // Perkawinan sebagai betina
     public function perkawinanBetina()
     {
         return $this->hasMany(Perkawinan::class, 'id_domba_betina', 'id_domba')
-                    ->orderBy('tanggal_kawin', 'desc');
+            ->orderBy('tanggal_kawin', 'desc');
     }
 
     // Perkawinan sebagai jantan
     public function perkawinanJantan()
     {
         return $this->hasMany(Perkawinan::class, 'id_domba_jantan', 'id_domba')
-                    ->orderBy('tanggal_kawin', 'desc');
+            ->orderBy('tanggal_kawin', 'desc');
     }
 }

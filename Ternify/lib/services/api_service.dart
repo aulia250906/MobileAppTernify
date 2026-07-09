@@ -22,7 +22,8 @@ class ApiService {
     //   return "http://127.0.0.1:8080/api";
     
 
-    return "http://192.168.18.227:8000/api";
+    return "http://127.0.0.1:8000/api";                           
+
   }
 
   static const String _tokenKey = 'auth_token';
@@ -615,6 +616,8 @@ static Future<bool> validateSession() async {
     String filter = 'semua',
     int page = 1,
     int perPage = 10,
+    String? dateFrom,
+    String? dateTo,
   }) async {
     try {
       final query = <String, String>{
@@ -628,6 +631,14 @@ static Future<bool> validateSession() async {
 
       if (filter != 'semua') {
         query['filter'] = filter;
+      }
+
+      if (dateFrom != null && dateFrom.isNotEmpty) {
+        query['date_from'] = dateFrom;
+      }
+
+      if (dateTo != null && dateTo.isNotEmpty) {
+        query['date_to'] = dateTo;
       }
 
       final uri = Uri.parse('$baseUrl/scan-logs').replace(
@@ -744,6 +755,48 @@ static Future<Map<String, dynamic>> assignDombaToKandang({
   throw Exception(decoded['message'] ?? 'Gagal memasukkan domba ke kandang');
 }
 
+static Future<Map<String, dynamic>> removeDombaFromKandang({
+  required String idKandang,
+  required List<String> dombaIds,
+  required String reason,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/kandang/$idKandang/remove-domba'),
+    headers: await authHeaders(),
+    body: jsonEncode({
+      'domba_ids': dombaIds,
+      'reason': reason,
+    }),
+  );
+
+  final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    return decoded;
+  }
+
+  throw Exception(decoded['message'] ?? 'Gagal mengeluarkan domba dari kandang');
+}
+
+static Future<List<Map<String, dynamic>>> fetchSemuaDomba() async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/kandang/semua-domba'),
+    headers: await authHeaders(),
+  );
+
+  final decoded = jsonDecode(response.body);
+
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    final data = decoded['data'];
+    if (data is List) {
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+    return [];
+  }
+
+  throw Exception(decoded['message'] ?? 'Gagal mengambil data domba');
+}
+
 static Future<List<Map<String, dynamic>>> fetchDombaByKandang(
   String idKandang,
 ) async {
@@ -772,24 +825,24 @@ static Future<List<Map<String, dynamic>>> fetchDombaByKandang(
   // ─────────────────────────────────────────────
 
   /// POST /api/rekam-medis
-  static Future<Map<String, dynamic>> createRekamMedis(
+static Future<Map<String, dynamic>> createRekamMedis(
     Map<String, dynamic> payload,
   ) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/rekam-medis'),
-        headers: await authHeaders(),
-        body: jsonEncode(payload),
-      );
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return decoded;
-      }
-      return {'success': false, 'message': decoded['message'] ?? 'Gagal menyimpan rekam medis'};
-    } catch (e) {
-      return {'success': false, 'message': 'Koneksi gagal: $e'};
+    final response = await http.post(
+      Uri.parse('$baseUrl/rekam-medis'),
+      headers: await authHeaders(),
+      body: jsonEncode(payload),
+    );
+    
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return decoded;
     }
+    
+    throw Exception(decoded['message'] ?? 'Gagal menyimpan rekam medis');
   }
+  
 
   /// GET /api/rekam-medis?ear_tag=xxx
   static Future<List<Map<String, dynamic>>> fetchRekamMedisByEarTag(
@@ -834,24 +887,24 @@ static Future<List<Map<String, dynamic>>> fetchDombaByKandang(
   // ─────────────────────────────────────────────
 
   /// POST /api/perkawinan
-  static Future<Map<String, dynamic>> createPerkawinan(
+static Future<Map<String, dynamic>> createPerkawinan(
     Map<String, dynamic> payload,
   ) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/perkawinan'),
-        headers: await authHeaders(),
-        body: jsonEncode(payload),
-      );
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return decoded;
-      }
-      return {'success': false, 'message': decoded['message'] ?? 'Gagal menyimpan data perkawinan'};
-    } catch (e) {
-      return {'success': false, 'message': 'Koneksi gagal: $e'};
+    final response = await http.post(
+      Uri.parse('$baseUrl/perkawinan'),
+      headers: await authHeaders(),
+      body: jsonEncode(payload),
+    );
+    
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return decoded;
     }
+    
+    throw Exception(decoded['message'] ?? 'Gagal menyimpan data perkawinan');
   }
+  
 
   /// GET /api/perkawinan?ear_tag=xxx
   static Future<List<Map<String, dynamic>>> fetchPerkawinanByEarTag(

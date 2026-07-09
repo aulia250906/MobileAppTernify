@@ -680,6 +680,7 @@ class _DetailDombaModalState extends State<_DetailDombaModal> {
 
   List<RekamMedis> _rekamMedis = [];
   bool _isLoadingMedis = true;
+  bool _showAllMedis = false;
   List<Perkawinan> _perkawinan = [];
   bool _isLoadingKawin = true;
 
@@ -1054,19 +1055,26 @@ class _DetailDombaModalState extends State<_DetailDombaModal> {
                 ),
               ),
               const Spacer(),
-              if (_rekamMedis.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${_rekamMedis.length} catatan',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1976D2),
+              if (_rekamMedis.length > 1)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _showAllMedis = !_showAllMedis;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3F2FD),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _showAllMedis ? 'Sembunyikan' : 'Lihat selengkapnya',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1976D2),
+                      ),
                     ),
                   ),
                 ),
@@ -1116,7 +1124,7 @@ class _DetailDombaModalState extends State<_DetailDombaModal> {
             _buildLatestMedisCard(_rekamMedis.first),
 
             // Older records
-            if (_rekamMedis.length > 1) ...[
+            if (_rekamMedis.length > 1 && _showAllMedis) ...[
               const SizedBox(height: 12),
               const Text(
                 'RIWAYAT SEBELUMNYA',
@@ -1129,17 +1137,9 @@ class _DetailDombaModalState extends State<_DetailDombaModal> {
               ),
               const SizedBox(height: 8),
               ...List.generate(
-                _rekamMedis.length - 1 > 5 ? 5 : _rekamMedis.length - 1,
+                _rekamMedis.length - 1,
                 (i) => _buildMedisHistoryItem(_rekamMedis[i + 1]),
               ),
-              if (_rekamMedis.length > 6)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    '+ ${_rekamMedis.length - 6} catatan lainnya',
-                    style: const TextStyle(fontSize: 12, color: textMuted),
-                  ),
-                ),
             ],
           ],
         ],
@@ -1442,13 +1442,14 @@ class _DetailDombaModalState extends State<_DetailDombaModal> {
     final domba = widget.domba;
     final isBetina = domba.earTag == p.earTagBetina;
     final pasanganTag = isBetina ? p.earTagJantan : p.earTagBetina;
-    final roleLabel = isBetina ? 'Betina' : 'Pejantan';
     final pasanganRole = isBetina ? 'Pejantan' : 'Betina';
 
     return Container(
-      width: double.infinity, padding: const EdgeInsets.all(14),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE8E3DA)),
         boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))],
       ),
@@ -1456,64 +1457,113 @@ class _DetailDombaModalState extends State<_DetailDombaModal> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header: status + date
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: _kawinStatusBg(p.statusPerkawinan), borderRadius: BorderRadius.circular(6)),
-              child: Text(p.statusLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _kawinStatusColor(p.statusPerkawinan))),
-            ),
-            const Spacer(),
-            Text(p.tanggalKawinDisplay, style: const TextStyle(fontSize: 12, color: textMuted)),
-          ]),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _kawinStatusBg(p.statusPerkawinan),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  p.statusLabel,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _kawinStatusColor(p.statusPerkawinan),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                p.tanggalKawinDisplay,
+                style: const TextStyle(fontSize: 12, color: textMuted, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
 
-          // Pair info
+          // Partner info (Redesigned without heart icon)
           Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: const Color(0xFFF9F6F1), borderRadius: BorderRadius.circular(8)),
-            child: Row(children: [
-              // This domba
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                Icon(isBetina ? Icons.female : Icons.male, size: 20, color: isBetina ? const Color(0xFFE91E63) : const Color(0xFF2196F3)),
-                const SizedBox(height: 4),
-                Text(domba.earTag, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
-                Text(roleLabel, style: const TextStyle(fontSize: 10, color: textMuted)),
-              ])),
-              // Heart icon
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.favorite, size: 16, color: Color(0xFFE91E63)),
-              ),
-              // Partner
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                Icon(!isBetina ? Icons.female : Icons.male, size: 20, color: !isBetina ? const Color(0xFFE91E63) : const Color(0xFF2196F3)),
-                const SizedBox(height: 4),
-                Text(pasanganTag, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
-                Text(pasanganRole, style: const TextStyle(fontSize: 10, color: textMuted)),
-              ])),
-            ]),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFF0EBE1)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    !isBetina ? Icons.female : Icons.male,
+                    size: 18,
+                    color: !isBetina ? const Color(0xFFE91E63) : const Color(0xFF2196F3),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pasangan ($pasanganRole)',
+                        style: const TextStyle(fontSize: 11, color: textMuted, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        pasanganTag,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: navyDark, letterSpacing: 0.5),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, size: 20, color: textMuted.withOpacity(0.5)),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // Info chips
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            _medisInfoChip(Icons.science_outlined, p.metodeLabel),
-            if (p.tanggalPerkiraanLahir != null)
-              _medisInfoChip(Icons.event_outlined, 'Lahir: ${p.tanggalLahirDisplay}'),
-            if (p.jumlahAnak != null)
-              _medisInfoChip(Icons.child_care_outlined, '${p.jumlahAnak} anak'),
-          ]),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _medisInfoChip(Icons.science_outlined, p.metodeLabel),
+              if (p.tanggalPerkiraanLahir != null)
+                _medisInfoChip(Icons.event_outlined, 'Lahir: ${p.tanggalLahirDisplay}'),
+              if (p.jumlahAnak != null)
+                _medisInfoChip(Icons.child_care_outlined, '${p.jumlahAnak} anak'),
+            ],
+          ),
 
           if (p.catatan != null && p.catatan!.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Container(
-              width: double.infinity, padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: const Color(0xFFF9F6F1), borderRadius: BorderRadius.circular(8)),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Icon(Icons.notes_outlined, size: 14, color: textMuted),
-                const SizedBox(width: 8),
-                Expanded(child: Text(p.catatan!, style: const TextStyle(fontSize: 12, color: navyDark, height: 1.4))),
-              ]),
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBF0),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFBE6B6)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.notes_rounded, size: 16, color: Color(0xFFD9A027)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      p.catatan!,
+                      style: const TextStyle(fontSize: 12, color: navyDark, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -1529,22 +1579,44 @@ class _DetailDombaModalState extends State<_DetailDombaModal> {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFEAE4D8))),
-      child: Row(children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: _kawinStatusColor(p.statusPerkawinan), shape: BoxShape.circle)),
-        const SizedBox(width: 10),
-        Text(p.tanggalKawinDisplay, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark)),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(color: _kawinStatusBg(p.statusPerkawinan), borderRadius: BorderRadius.circular(4)),
-          child: Text(p.statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kawinStatusColor(p.statusPerkawinan))),
-        ),
-        const Spacer(),
-        const Icon(Icons.favorite, size: 10, color: Color(0xFFE91E63)),
-        const SizedBox(width: 4),
-        Text(pasanganTag, style: const TextStyle(fontSize: 11, color: textMuted)),
-      ]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFEAE4D8)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: _kawinStatusColor(p.statusPerkawinan), shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            p.tanggalKawinDisplay,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: navyDark),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: _kawinStatusBg(p.statusPerkawinan),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              p.statusLabel,
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kawinStatusColor(p.statusPerkawinan)),
+            ),
+          ),
+          const Spacer(),
+          Icon(!isBetina ? Icons.female : Icons.male, size: 14, color: !isBetina ? const Color(0xFFE91E63) : const Color(0xFF2196F3)),
+          const SizedBox(width: 4),
+          Text(
+            pasanganTag,
+            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: navyDark),
+          ),
+        ],
+      ),
     );
   }
 }

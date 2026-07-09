@@ -5,7 +5,9 @@ class Domba {
   final String jenisKelamin;
   final String? tanggalLahir;
   final String? idInduk;
+  final String? earTagInduk;
   final String? idPejantan;
+  final String? earTagPejantan;
   final Map<String, dynamic>? induk;
   final Map<String, dynamic>? pejantan;
   final double? berat;
@@ -22,7 +24,9 @@ final String statusKetersediaan;
     required this.jenisKelamin,
     this.tanggalLahir,
     this.idInduk,
+    this.earTagInduk,
     this.idPejantan,
+    this.earTagPejantan,
     this.induk,
     this.pejantan,
     this.berat,
@@ -41,7 +45,9 @@ this.statusKetersediaan = 'tersedia',
       jenisKelamin: json['jenis_kelamin'] ?? '',
       tanggalLahir: json['tanggal_lahir'],
       idInduk: json['id_induk'],
+      earTagInduk: json['ear_tag_induk'],
       idPejantan: json['id_pejantan'],
+      earTagPejantan: json['ear_tag_pejantan'],
       induk: json['induk'] != null
           ? Map<String, dynamic>.from(json['induk'])
           : null,
@@ -65,17 +71,20 @@ statusKetersediaan: json['status_ketersediaan']?.toString() ?? 'tersedia',
     'jenis_kelamin': jenisKelamin,
     'tanggal_lahir': tanggalLahir,
     'id_induk': idInduk,
+    'ear_tag_induk': earTagInduk,
     'id_pejantan': idPejantan,
+    'ear_tag_pejantan': earTagPejantan,
     'berat': berat,
     'status': status,
     'vaksinasi': vaksinasi,
   };
 
-  /// Nama induk dari relasi (jika dimuat)
-  String get namaInduk => induk?['ear_tag'] ?? '-';
+  /// Nama induk dari relasi, fallback ke id jika relasi belum dimuat.
+  String get namaInduk => induk?['ear_tag'] ?? earTagInduk ?? idInduk ?? '-';
 
-  /// Nama pejantan dari relasi (jika dimuat)
-  String get namaPejantan => pejantan?['ear_tag'] ?? '-';
+  /// Nama pejantan dari relasi, fallback ke id jika relasi belum dimuat.
+  String get namaPejantan =>
+      pejantan?['ear_tag'] ?? earTagPejantan ?? idPejantan ?? '-';
 
   /// Hitung umur dari tanggal_lahir
   String get umur {
