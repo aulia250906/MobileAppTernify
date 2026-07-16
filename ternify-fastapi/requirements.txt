@@ -9,3 +9,5 @@ Pillow
 rapidfuzz
 joblib
 python-dotenv
+pytest
+pytest-asyncio

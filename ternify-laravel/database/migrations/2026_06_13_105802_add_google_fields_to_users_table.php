@@ -31,7 +31,9 @@ return new class extends Migration
         });
 
         // Membuat password boleh null untuk akun Google
-        DB::statement('ALTER TABLE users MODIFY password VARCHAR(255) NULL');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('password')->nullable()->change();
+        });
     }
 
     public function down(): void
@@ -50,6 +52,8 @@ return new class extends Migration
             }
         });
 
-        DB::statement('ALTER TABLE users MODIFY password VARCHAR(255) NOT NULL');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('password')->nullable(false)->change();
+        });
     }
 };
