@@ -55,22 +55,22 @@ class ModelRegistry:
     _DEFAULT_CONFIG = {
         "tesseract": {
             "oem": 3,
-            "psm_primary": 11,
-            "psm_fallback": 6,
+            "psm_primary": 6,
+            "psm_fallback": 11,
             "lang": "ind",
             "confidence_threshold": 50,
             "min_words_threshold": 5,
         },
         "preprocessing": {
             "min_width": 1500,
-            "blur_kernel_size": 5,
-            "adaptive_block_size": 35,
-            "adaptive_c": 15,
+            "blur_kernel_size": 3,
+            "adaptive_block_size": 31,
+            "adaptive_c": 10,
             "morph_h_len": 40,
             "morph_v_len": 40,
             "morph_iterations": 2,
-            "contrast_factor": 1.5,
-            "sharpness_factor": 2.0,
+            "contrast_factor": 1.3,
+            "sharpness_factor": 1.5,
         },
         "nlp": {
             "default_threshold": 78,
@@ -193,10 +193,13 @@ def preprocess_image(image_path):
         scale = min_w / w
         gray = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
 
-    blur_k = prep_config.get("blur_kernel_size", 5)
+    blur_k = prep_config.get("blur_kernel_size", 3)
+    # Pastikan blur_k selalu ganjil (syarat GaussianBlur)
+    if blur_k % 2 == 0:
+        blur_k += 1
     blurred = cv2.GaussianBlur(gray, (blur_k, blur_k), 0)
-    block_size = prep_config.get("adaptive_block_size", 35)
-    c_val = prep_config.get("adaptive_c", 15)
+    block_size = prep_config.get("adaptive_block_size", 31)
+    c_val = prep_config.get("adaptive_c", 10)
     thresh = cv2.adaptiveThreshold(
         blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, block_size, c_val
     )
@@ -216,8 +219,10 @@ def preprocess_image(image_path):
     thresh_clean = cv2.subtract(thresh, table_lines)
     final_img = 255 - thresh_clean
 
-    erode_k = np.ones((2, 2), np.uint8)
-    final_img = cv2.erode(final_img, erode_k, iterations=1)
+    # Morphological close (bukan erode!) — menyambung stroke huruf yang
+    # terputus akibat thresholding tanpa menipiskan huruf.
+    close_k = np.ones((2, 2), np.uint8)
+    final_img = cv2.morphologyEx(final_img, cv2.MORPH_CLOSE, close_k, iterations=1)
 
     oem = tess_config.get("oem", 3)
     lang = tess_config.get("lang", "ind")
