@@ -4,12 +4,20 @@ Unit Tests untuk pipeline-level functions di ocr_service.py
 Cakupan:
 - preprocess_image: Image preprocessing (mock cv2 + pytesseract)
 - process_form_image: Pipeline orchestrator (mock internal functions)
+- ModelRegistry: Penyimpanan konfigurasi via Joblib
+- validate_ocr_dataframe: Data validation via Pandas
 """
+import os
+import json
 import pytest
 from unittest.mock import patch, MagicMock
 import numpy as np
 
-from ocr_service import preprocess_image, process_form_image
+from ocr_service import (
+    preprocess_image, process_form_image,
+    ModelRegistry, get_registry,
+    validate_ocr_dataframe, _normalize_unicode_chars,
+)
 
 
 # ====================================================================
@@ -381,3 +389,242 @@ class TestProcessFormImage:
         result = process_form_image("perfect.jpg")
         assert result["success"] is True
         assert result["confidence"] == 100.0
+
+
+# ====================================================================
+# ModelRegistry — Penyimpanan Model & Konfigurasi via Joblib
+# ====================================================================
+class TestModelRegistry:
+    """
+    Tujuan: Memastikan ModelRegistry menyimpan dan memuat konfigurasi
+    model OCR via Joblib, dengan fallback ke default config.
+    """
+
+    def setup_method(self):
+        """Reset singleton sebelum tiap test."""
+        ModelRegistry._instance = None
+
+    def teardown_method(self):
+        """Bersihkan singleton setelah tiap test."""
+        ModelRegistry._instance = None
+
+    def test_default_config_has_all_sections(self):
+        """Config default harus memiliki semua section yang dibutuhkan."""
+        registry = ModelRegistry()
+        config = registry.get_config()
+        assert "tesseract" in config
+        assert "preprocessing" in config
+        assert "nlp" in config
+        assert "version" in config
+
+    def test_get_section_tesseract(self):
+        """get_config('tesseract') mengembalikan sub-dict dengan key yang benar."""
+        registry = ModelRegistry()
+        tess = registry.get_config("tesseract")
+        assert "oem" in tess
+        assert "lang" in tess
+        assert "psm_primary" in tess
+        assert "psm_fallback" in tess
+        assert tess["lang"] == "ind"
+
+    def test_get_section_preprocessing(self):
+        """get_config('preprocessing') mengembalikan params preprocessing."""
+        registry = ModelRegistry()
+        prep = registry.get_config("preprocessing")
+        assert "min_width" in prep
+        assert "contrast_factor" in prep
+        assert "sharpness_factor" in prep
+        assert prep["min_width"] == 1500
+
+    def test_get_nonexistent_section(self):
+        """Section yang tidak ada mengembalikan dict kosong."""
+        registry = ModelRegistry()
+        assert registry.get_config("nonexistent") == {}
+
+    def test_get_full_config(self):
+        """get_config() tanpa argumen mengembalikan seluruh config."""
+        registry = ModelRegistry()
+        config = registry.get_config()
+        assert isinstance(config, dict)
+        assert "version" in config
+
+    def test_update_config(self, tmp_path):
+        """update_config mengubah nilai dan mempersist."""
+        config_path = str(tmp_path / "test_config.joblib")
+        registry = ModelRegistry(config_path)
+        registry.update_config("tesseract", "oem", 1)
+        assert registry.get_config("tesseract")["oem"] == 1
+
+    def test_save_and_load_round_trip(self, tmp_path):
+        """Config yang disimpan bisa dimuat kembali dengan benar."""
+        config_path = str(tmp_path / "test_config.joblib")
+        registry1 = ModelRegistry(config_path)
+        registry1.update_config("tesseract", "lang", "eng")
+        registry1.save()
+
+        registry2 = ModelRegistry(config_path)
+        assert registry2.get_config("tesseract")["lang"] == "eng"
+
+    def test_save_creates_json_alongside_joblib(self, tmp_path):
+        """save() membuat file .json di samping .joblib untuk human-readability."""
+        config_path = str(tmp_path / "test_config.joblib")
+        registry = ModelRegistry(config_path)
+        registry.save()
+
+        json_path = str(tmp_path / "test_config.json")
+        assert os.path.exists(json_path)
+        with open(json_path, encoding="utf-8") as f:
+            data = json.load(f)
+        assert data["version"] == "1.0.0"
+
+    def test_singleton_pattern(self):
+        """get_registry() mengembalikan instance yang sama (singleton)."""
+        ModelRegistry._instance = None
+        r1 = get_registry()
+        r2 = get_registry()
+        assert r1 is r2
+        ModelRegistry._instance = None
+
+    def test_corrupt_file_falls_back_to_default(self, tmp_path):
+        """File joblib yang korup → fallback ke default config."""
+        config_path = str(tmp_path / "corrupt.joblib")
+        with open(config_path, "w") as f:
+            f.write("this is not a valid joblib file")
+        registry = ModelRegistry(config_path)
+        assert registry.get_config("tesseract")["oem"] == 3  # default value
+
+
+# ====================================================================
+# validate_ocr_dataframe — Data Validation via Pandas
+# ====================================================================
+class TestValidateOcrDataframe:
+    """
+    Tujuan: Memastikan validate_ocr_dataframe membersihkan dan
+    memvalidasi data hasil OCR menggunakan Pandas DataFrame.
+    """
+
+    def test_clean_data_passthrough(self):
+        """Data yang sudah bersih harus lewat tanpa perubahan."""
+        record = {"ear_tag": "031", "berat_badan": "15 kg", "gejala": "diare"}
+        result = validate_ocr_dataframe(record, "REKAM_MEDIS")
+        assert result["ear_tag"] == "031"
+        assert result["berat_badan"] == "15 kg"
+        assert result["gejala"] == "diare"
+
+    def test_strip_whitespace(self):
+        """Whitespace di awal/akhir value harus dibuang."""
+        record = {"ear_tag": "  031  ", "gejala": " diare "}
+        result = validate_ocr_dataframe(record, "REKAM_MEDIS")
+        assert result["ear_tag"] == "031"
+        assert result["gejala"] == "diare"
+
+    def test_remove_noise_values(self):
+        """Nilai noise-only (hanya simbol) harus menjadi None."""
+        record = {"ear_tag": "031", "catatan": "---", "gejala": "~"}
+        result = validate_ocr_dataframe(record, "REKAM_MEDIS")
+        assert result["ear_tag"] == "031"
+        assert result["catatan"] is None
+        assert result["gejala"] is None
+
+    def test_none_values_preserved(self):
+        """None tetap None, tidak berubah."""
+        record = {"ear_tag": None, "berat_badan": None}
+        result = validate_ocr_dataframe(record, "REKAM_MEDIS")
+        assert result["ear_tag"] is None
+        assert result["berat_badan"] is None
+
+    def test_ear_tag_digits_only(self):
+        """Ear tag yang mengandung huruf → ambil digit saja."""
+        record = {"ear_tag": "ABC031DEF"}
+        result = validate_ocr_dataframe(record, "DATA_DOMBA")
+        assert result["ear_tag"] == "031"
+
+    def test_ear_tag_no_digits(self):
+        """Ear tag tanpa digit sama sekali → None."""
+        record = {"ear_tag": "ABC"}
+        result = validate_ocr_dataframe(record, "DATA_DOMBA")
+        assert result["ear_tag"] is None
+
+    def test_date_normalization(self):
+        """Tanggal dengan spasi berlebih → spasi dihapus."""
+        record = {"tanggal_lahir": "12 - 01 - 2025"}
+        result = validate_ocr_dataframe(record, "DATA_DOMBA")
+        assert result["tanggal_lahir"] == "12-01-2025"
+
+    def test_berat_no_digits(self):
+        """Berat badan tanpa angka → None."""
+        record = {"berat_badan": "berat"}
+        result = validate_ocr_dataframe(record, "REKAM_MEDIS")
+        assert result["berat_badan"] is None
+
+    def test_berat_with_digits_kept(self):
+        """Berat badan dengan angka + satuan → dipertahankan."""
+        record = {"berat_badan": "15 kg"}
+        result = validate_ocr_dataframe(record, "REKAM_MEDIS")
+        assert result["berat_badan"] == "15 kg"
+
+    def test_unicode_normalization(self):
+        """Karakter unicode (en-dash, smart quotes) → dinormalisasi."""
+        record = {"catatan": "demam\u2013tinggi"}
+        result = validate_ocr_dataframe(record, "REKAM_MEDIS")
+        assert result["catatan"] == "demam-tinggi"
+
+    def test_empty_record(self):
+        """Record kosong → dikembalikan apa adanya."""
+        assert validate_ocr_dataframe({}, "REKAM_MEDIS") == {}
+
+    def test_none_record(self):
+        """None → dikembalikan None."""
+        assert validate_ocr_dataframe(None, "REKAM_MEDIS") is None
+
+    def test_empty_string_becomes_none(self):
+        """String kosong atau hanya spasi → None."""
+        record = {"ear_tag": "", "gejala": "  "}
+        result = validate_ocr_dataframe(record, "REKAM_MEDIS")
+        assert result["ear_tag"] is None
+        assert result["gejala"] is None
+
+    def test_perkawinan_ear_tag_fields(self):
+        """Validasi ear_tag pada form perkawinan (induk & pejantan)."""
+        record = {"ear_tag_induk": "ABC042", "ear_tag_pejantan": "XY099"}
+        result = validate_ocr_dataframe(record, "PERKAWINAN")
+        assert result["ear_tag_induk"] == "042"
+        assert result["ear_tag_pejantan"] == "099"
+
+    def test_tanggal_perkawinan_normalization(self):
+        """Tanggal perkawinan → spasi dihapus."""
+        record = {"tanggal_perkawinan": "15 / 06 / 2025"}
+        result = validate_ocr_dataframe(record, "PERKAWINAN")
+        assert result["tanggal_perkawinan"] == "15/06/2025"
+
+
+# ====================================================================
+# _normalize_unicode_chars
+# ====================================================================
+class TestNormalizeUnicodeChars:
+    """Tests untuk fungsi helper normalisasi karakter unicode."""
+
+    def test_en_dash(self):
+        assert _normalize_unicode_chars("a\u2013b") == "a-b"
+
+    def test_em_dash(self):
+        assert _normalize_unicode_chars("a\u2014b") == "a-b"
+
+    def test_smart_quotes(self):
+        assert _normalize_unicode_chars("\u2018hello\u2019") == "'hello'"
+        assert _normalize_unicode_chars("\u201chello\u201d") == '"hello"'
+
+    def test_ellipsis(self):
+        assert _normalize_unicode_chars("wait\u2026") == "wait..."
+
+    def test_nbsp(self):
+        assert _normalize_unicode_chars("hello\u00a0world") == "hello world"
+
+    def test_none_passthrough(self):
+        assert _normalize_unicode_chars(None) is None
+
+    def test_int_passthrough(self):
+        assert _normalize_unicode_chars(123) == 123
+
+    def test_no_unicode(self):
+        assert _normalize_unicode_chars("hello world") == "hello world"
