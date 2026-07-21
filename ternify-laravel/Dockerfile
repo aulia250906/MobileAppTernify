@@ -18,14 +18,15 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 # 4. SOLUSI DEFINITIF: Matikan semua MPM lain, aktifkan prefork, lalu VALIDASI saat build
-#    (build akan GAGAL kalau ternyata masih ada lebih dari 1 MPM aktif, jadi tidak akan
-#    lolos ke runtime dan bikin crash-loop di Railway)
 RUN a2dismod mpm_event mpm_worker 2>/dev/null; \
     a2enmod mpm_prefork rewrite && \
-    ACTIVE_MPMS=$(ls /etc/apache2/mods-enabled | grep -c '^mpm_') && \
+    ACTIVE_MPMS=$(ls /etc/apache2/mods-enabled | grep '^mpm_' | sed -E 's/\.(load|conf)$//' | sort -u | wc -l) && \
     if [ "$ACTIVE_MPMS" -ne 1 ]; then \
         echo "ERROR: Masih ada $ACTIVE_MPMS modul MPM aktif, harus tepat 1"; \
+        ls -la /etc/apache2/mods-enabled | grep mpm_; \
         exit 1; \
+    else \
+        echo "OK: Hanya 1 MPM aktif (prefork)"; \
     fi
 
 # 5. Install Composer
