@@ -17,10 +17,16 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# 4. SOLUSI DEFINITIF: Sapu bersih semua konfigurasi MPM bawaan, lalu aktifkan prefork
-RUN find /etc/apache2/mods-enabled -name "mpm_*.load" -delete \
-    && find /etc/apache2/mods-enabled -name "mpm_*.conf" -delete \
-    && a2enmod mpm_prefork rewrite
+# 4. SOLUSI DEFINITIF: Matikan semua MPM lain, aktifkan prefork, lalu VALIDASI saat build
+#    (build akan GAGAL kalau ternyata masih ada lebih dari 1 MPM aktif, jadi tidak akan
+#    lolos ke runtime dan bikin crash-loop di Railway)
+RUN a2dismod mpm_event mpm_worker 2>/dev/null; \
+    a2enmod mpm_prefork rewrite && \
+    ACTIVE_MPMS=$(ls /etc/apache2/mods-enabled | grep -c '^mpm_') && \
+    if [ "$ACTIVE_MPMS" -ne 1 ]; then \
+        echo "ERROR: Masih ada $ACTIVE_MPMS modul MPM aktif, harus tepat 1"; \
+        exit 1; \
+    fi
 
 # 5. Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -37,10 +43,13 @@ RUN composer install --no-dev --optimize-autoloader
 # 9. Set hak akses (Penting agar framework bisa menulis log/cache)
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 10. Konfigurasi Apache untuk membaca /public dan port Railway
+# 10. Konfigurasi Apache untuk membaca /public
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
-RUN echo 'Listen ${PORT}' > /etc/apache2/ports.conf
-RUN sed -i 's/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/g' /etc/apache2/sites-available/000-default.conf
 
-# 11. Jalankan Apache
+# 11. Salin entrypoint script (untuk substitusi $PORT saat RUNTIME, bukan build time)
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# 12. Jalankan entrypoint dulu, baru Apache
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["apache2-foreground"]
