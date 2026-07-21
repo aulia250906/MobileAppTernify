@@ -1,12 +1,9 @@
 import cv2
-import os
 import re
 import json
 import joblib
 import numpy as np
-import pandas as pd
 import pytesseract
-from PIL import Image, ImageEnhance
 from rapidfuzz import process, fuzz
 
 
@@ -47,170 +44,28 @@ KB_KEBUNTINGAN = ["bunting", "tidak bunting", "belum diketahui", "melahirkan",
 ALL_KB = (KB_RAS + KB_GEJALA + KB_DIAGNOSIS + KB_TINDAKAN + KB_OBAT + KB_STATUS + KB_KELAMIN + KB_KEBUNTINGAN)
 
 # ==================================================================
-# MODEL REGISTRY — Penyimpanan Model & Konfigurasi via Joblib
-# ==================================================================
-class ModelRegistry:
-    """Registry untuk menyimpan dan memuat konfigurasi model OCR via Joblib."""
-    _instance = None
-    _DEFAULT_CONFIG = {
-        "tesseract": {
-            "oem": 3,
-            "psm_primary": 6,
-            "psm_fallback": 11,
-            "lang": "ind",
-            "confidence_threshold": 50,
-            "min_words_threshold": 5,
-        },
-        "preprocessing": {
-            "min_width": 1500,
-            "blur_kernel_size": 3,
-            "adaptive_block_size": 31,
-            "adaptive_c": 10,
-            "morph_h_len": 40,
-            "morph_v_len": 40,
-            "morph_iterations": 2,
-            "contrast_factor": 1.3,
-            "sharpness_factor": 1.5,
-        },
-        "nlp": {
-            "default_threshold": 78,
-            "strict_threshold": 70,
-        },
-        "version": "1.0.0",
-    }
-
-    def __init__(self, config_path="models/default_config.joblib"):
-        self.config_path = config_path
-        self.config = self._load_or_create()
-
-    def _load_or_create(self):
-        """Muat konfigurasi dari file joblib, atau gunakan default jika belum ada."""
-        if os.path.exists(self.config_path):
-            try:
-                loaded = joblib.load(self.config_path)
-                if isinstance(loaded, dict):
-                    return loaded
-            except Exception:
-                pass
-        # Deep copy default via json untuk menghindari mutasi
-        return json.loads(json.dumps(self._DEFAULT_CONFIG))
-
-    def get_config(self, section=None):
-        """Ambil konfigurasi aktif. Jika section diberikan, kembalikan sub-dict."""
-        if section:
-            return self.config.get(section, {})
-        return self.config
-
-    def save(self):
-        """Simpan konfigurasi ke file .joblib dan .json (human-readable)."""
-        try:
-            config_dir = os.path.dirname(self.config_path)
-            if config_dir:
-                os.makedirs(config_dir, exist_ok=True)
-            joblib.dump(self.config, self.config_path)
-            # Simpan juga versi JSON yang bisa dibaca manusia
-            json_path = self.config_path.replace(".joblib", ".json")
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(self.config, f, indent=2, ensure_ascii=False)
-        except Exception:
-            pass  # Gagal simpan tidak menghentikan proses OCR
-
-    def update_config(self, section, key, value):
-        """Update satu nilai konfigurasi dan simpan."""
-        if section in self.config:
-            self.config[section][key] = value
-            self.save()
-
-
-def get_registry(config_path="models/default_config.joblib"):
-    """Singleton loader untuk ModelRegistry."""
-    if ModelRegistry._instance is None:
-        ModelRegistry._instance = ModelRegistry(config_path)
-        ModelRegistry._instance.save()
-    return ModelRegistry._instance
-
-# ==================================================================
 # DATA LAYER - PREPROCESSING
 # ==================================================================
-def _deskew_image(cv_image):
-    """Deteksi dan koreksi kemiringan gambar menggunakan Pillow + Tesseract OSD.
-
-    Penting untuk foto dari kamera HP yang sering miring. Menggunakan
-    pytesseract.image_to_osd untuk mendeteksi sudut rotasi, lalu memutar
-    gambar dengan Pillow agar lurus.
-    """
-    try:
-        pil_img = Image.fromarray(cv_image[:, :, ::-1])  # BGR → RGB tanpa cv2
-        osd = pytesseract.image_to_osd(cv_image, output_type=pytesseract.Output.DICT)
-        angle = int(osd.get("rotate", 0))
-        if angle != 0:
-            pil_img = pil_img.rotate(-angle, expand=True, fillcolor=(255, 255, 255))
-            return np.array(pil_img)[:, :, ::-1]  # RGB → BGR
-    except Exception:
-        pass  # Jika OSD gagal, lewati deskew
-    return cv_image
-
-
-def _enhance_image(cv_image, contrast_factor=1.5, sharpness_factor=2.0):
-    """Tingkatkan kontras dan ketajaman gambar menggunakan Pillow.
-
-    Foto dari HP sering memiliki kontras rendah atau blur ringan.
-    Enhancement ini meningkatkan keterbacaan teks sebelum masuk ke
-    tahap thresholding OpenCV.
-    """
-    try:
-        pil_img = Image.fromarray(cv_image[:, :, ::-1])  # BGR → RGB
-        pil_img = ImageEnhance.Contrast(pil_img).enhance(contrast_factor)
-        pil_img = ImageEnhance.Sharpness(pil_img).enhance(sharpness_factor)
-        return np.array(pil_img)[:, :, ::-1]  # RGB → BGR
-    except Exception:
-        return cv_image
-
-
 def preprocess_image(image_path):
-    """Pipeline preprocessing gambar: Pillow enhancement → OpenCV cleanup → confidence."""
-    registry = get_registry()
-    prep_config = registry.get_config("preprocessing")
-    tess_config = registry.get_config("tesseract")
-
     original = cv2.imread(image_path)
     if original is None:
         raise ValueError(f"Gambar tidak ditemukan: {image_path}")
 
-    # --- Tahap 1: Pillow Enhancement (Deskew & Contrast/Sharpness) ---
-    enhanced = _deskew_image(original)
-    enhanced = _enhance_image(
-        enhanced,
-        contrast_factor=prep_config.get("contrast_factor", 1.5),
-        sharpness_factor=prep_config.get("sharpness_factor", 2.0),
-    )
-
-    # --- Tahap 2: OpenCV Preprocessing (Grayscale, Thresholding, Noise Removal) ---
-    gray = cv2.cvtColor(enhanced, cv2.COLOR_BGR2GRAY)
-    min_w = prep_config.get("min_width", 1500)
+    gray = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
     h, w = gray.shape
-    if w < min_w:
-        scale = min_w / w
+    if w < 1500:
+        scale = 1500 / w
         gray = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
 
-    blur_k = prep_config.get("blur_kernel_size", 3)
-    # Pastikan blur_k selalu ganjil (syarat GaussianBlur)
-    if blur_k % 2 == 0:
-        blur_k += 1
-    blurred = cv2.GaussianBlur(gray, (blur_k, blur_k), 0)
-    block_size = prep_config.get("adaptive_block_size", 31)
-    c_val = prep_config.get("adaptive_c", 10)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     thresh = cv2.adaptiveThreshold(
-        blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, block_size, c_val
+        blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 35, 15
     )
 
-    morph_h = prep_config.get("morph_h_len", 40)
-    morph_v = prep_config.get("morph_v_len", 40)
-    morph_iter = prep_config.get("morph_iterations", 2)
-    h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (morph_h, 1))
-    v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, morph_v))
-    h_lines  = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, h_kernel, iterations=morph_iter)
-    v_lines  = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, v_kernel, iterations=morph_iter)
+    h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 1))
+    v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 40))
+    h_lines  = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, h_kernel, iterations=2)
+    v_lines  = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, v_kernel, iterations=2)
     table_lines = cv2.add(h_lines, v_lines)
 
     dilate_k = np.ones((3, 3), np.uint8)
@@ -219,15 +74,11 @@ def preprocess_image(image_path):
     thresh_clean = cv2.subtract(thresh, table_lines)
     final_img = 255 - thresh_clean
 
-    # Morphological close (bukan erode!) — menyambung stroke huruf yang
-    # terputus akibat thresholding tanpa menipiskan huruf.
-    close_k = np.ones((2, 2), np.uint8)
-    final_img = cv2.morphologyEx(final_img, cv2.MORPH_CLOSE, close_k, iterations=1)
+    erode_k = np.ones((2, 2), np.uint8)
+    final_img = cv2.erode(final_img, erode_k, iterations=1)
 
-    oem = tess_config.get("oem", 3)
-    lang = tess_config.get("lang", "ind")
     tess_data = pytesseract.image_to_data(
-        final_img, lang=lang, config=f"--oem {oem} --psm 6", output_type=pytesseract.Output.DICT
+        final_img, lang="ind", config="--oem 3 --psm 6", output_type=pytesseract.Output.DICT
     )
     confs = [int(c) for c in tess_data["conf"] if str(c).isdigit() and int(c) > 0]
     confidence = round(sum(confs) / len(confs), 1) if confs else 0
@@ -237,13 +88,10 @@ def preprocess_image(image_path):
 # ==================================================================
 # OCR ENGINE & NLP
 # ==================================================================
-def _extract_lines_from_tess_data(data):
-    """Ekstrak baris teks terstruktur dari output pytesseract.image_to_data.
-
-    Mengelompokkan kata-kata berdasarkan koordinat Y (baris visual), lalu
-    mengurutkan per baris berdasarkan koordinat X (posisi horizontal).
-    Kata dengan confidence ≤ 10 dibuang.
-    """
+def run_ocr_engine(image):
+    data = pytesseract.image_to_data(
+        image, config="--oem 3 --psm 11 -l ind", output_type=pytesseract.Output.DICT
+    )
     lines_dict = {}
     for i in range(len(data["text"])):
         text = data["text"][i].strip()
@@ -264,72 +112,12 @@ def _extract_lines_from_tess_data(data):
 
     return "\n".join(result_lines)
 
-
-def run_ocr_engine(image):
-    """OCR Engine dengan smart fallback strategy.
-
-    Menjalankan Tesseract dengan PSM primary (default: 11 — sparse text).
-    Jika hasilnya terlalu sedikit kata (< min_words_threshold), mencoba
-    PSM fallback (default: 6 — uniform block) dan mengambil hasil terbaik.
-    Strategi ini menjaga response time cepat untuk mobile tanpa mengorbankan
-    akurasi pada gambar yang sulit.
-    """
-    registry = get_registry()
-    tess_config = registry.get_config("tesseract")
-    oem = tess_config.get("oem", 3)
-    lang = tess_config.get("lang", "ind")
-    psm_primary = tess_config.get("psm_primary", 11)
-    psm_fallback = tess_config.get("psm_fallback", 6)
-    min_words = tess_config.get("min_words_threshold", 5)
-
-    # Primary pass
-    primary_cfg = f"--oem {oem} --psm {psm_primary} -l {lang}"
-    data = pytesseract.image_to_data(
-        image, config=primary_cfg, output_type=pytesseract.Output.DICT
-    )
-    best_text = _extract_lines_from_tess_data(data)
-
-    # Smart fallback: hanya jika hasil primary terlalu sedikit
-    if len(best_text.split()) < min_words and psm_fallback:
-        try:
-            fallback_cfg = f"--oem {oem} --psm {psm_fallback} -l {lang}"
-            fb_data = pytesseract.image_to_data(
-                image, config=fallback_cfg, output_type=pytesseract.Output.DICT
-            )
-            fb_text = _extract_lines_from_tess_data(fb_data)
-            if len(fb_text.split()) > len(best_text.split()):
-                best_text = fb_text
-        except Exception:
-            pass
-
-    return best_text
-
-
 def nlp_text_correction(word, kb_list, threshold=78):
-    """Koreksi teks OCR via fuzzy matching terhadap Knowledge Base.
-
-    Menggunakan dua strategi pencocokan:
-    1. fuzz.ratio (primary) — pencocokan karakter langsung, baik untuk typo
-    2. fuzz.token_sort_ratio (fallback) — menangani urutan kata terbalik,
-       mis. OCR membaca "makan nafsu" padahal seharusnya "nafsu makan"
-    """
     if not word or len(word) <= 2 or word in ["-", "--", "~"]: return word
-    kb_lower = [k.lower() for k in kb_list]
-
-    # Primary: fuzz.ratio (pencocokan karakter langsung)
-    match = process.extractOne(word.lower(), kb_lower, scorer=fuzz.ratio)
+    match = process.extractOne(word.lower(), [k.lower() for k in kb_list], scorer=fuzz.ratio)
     if match and threshold <= match[1] < 100:
-        idx = kb_lower.index(match[0])
+        idx = [k.lower() for k in kb_list].index(match[0])
         return kb_list[idx]
-
-    # Fallback: token_sort_ratio (menangani kata yang urutannya terbalik)
-    match_tsr = process.extractOne(word.lower(), kb_lower, scorer=fuzz.token_sort_ratio)
-    if match_tsr and match_tsr[1] >= threshold:
-        idx = kb_lower.index(match_tsr[0])
-        # Hanya koreksi jika hasilnya berbeda dari input
-        if kb_list[idx].lower() != word.lower():
-            return kb_list[idx]
-
     return word
 
 # ==================================================================
@@ -475,13 +263,13 @@ def _parse_line_with_map(line, field_map):
 # Parser Rekam Medis
 def parse_rekam_medis_card(raw_text):
     FIELD_MAP = {
-        r"ear|tag|e[a-z]r|t[a-z]g|domba|id": "ear_tag",
-        r"berat|bobot|b[a-z]rat|b[a-z]bot": "berat_badan",
-        r"gejala|symptom|keluhan|g[a-z]jala": "gejala",
-        r"diagnosa|diagnosis|diagnos|d[a-z]agnos": "diagnosa",
-        r"tindakan|treatment|penanganan|t[a-z]ndak": "tindakan",
-        r"dosis|obat|d[a-z]sis": "dosis_obat",
-        r"status|kondisi|st[a-z]tus|k[a-z]ndisi": "status_kondisi",
+        r"domba|ear.?tag|no.?domba|id.?domba": "ear_tag",
+        r"berat.?badan|berat|bobot": "berat_badan",
+        r"gejala|symptom|keluhan": "gejala",
+        r"diagnosa|diagnosis|diagnos": "diagnosa",
+        r"tindakan|treatment|penanganan": "tindakan",
+        r"dosis.?obat|dosis|^obat$": "dosis_obat",
+        r"status.?kondisi|status|kondisi": "status_kondisi",
         r"catatan|note|keterangan": "catatan",
     }
     KB_MAP = {"gejala": KB_GEJALA, "diagnosa": KB_DIAGNOSIS, "tindakan": KB_TINDAKAN,
@@ -532,10 +320,10 @@ def parse_rekam_medis_card(raw_text):
 # Parser Perkawinan
 def parse_perkawinan_card(raw_text):
     FIELD_MAP = {
-        r"tanggal|kawin|perkawinan|t[a-z]nggal|tgl|k[a-z]win": "tanggal_perkawinan",
-        r"induk|i[a-z]duk|1nduk|lnduk": "ear_tag_induk",
-        r"pejantan|jantan|j[a-z]ntan|p[a-z]jantan": "ear_tag_pejantan",
-        r"bunting|kebuntingan|status|b[a-z]nting|st[a-z]tus": "status_kebuntingan",
+        r"tanggal.?perkawinan|tgl.?perkawinan|tanggal.?kawin": "tanggal_perkawinan",
+        r"induk": "ear_tag_induk",
+        r"pejantan|jantan.*ear|ear.*jantan": "ear_tag_pejantan",
+        r"kebuntingan|bunting|status": "status_kebuntingan",
         r"catatan|note|keterangan": "catatan"
     }
     KB_MAP = {"status_kebuntingan": KB_KEBUNTINGAN}
@@ -565,12 +353,12 @@ def parse_perkawinan_card(raw_text):
 # Parser Data Domba
 def parse_data_domba_card(raw_text):
     FIELD_MAP = {
-        r"induk|i[a-z]duk|1nduk|lnduk": "ear_tag_induk",
-        r"pejantan|jantan|j[a-z]ntan|p[a-z]jantan": "ear_tag_jantan",
-        r"ear|tag|e[a-z]r|t[a-z]g|id": "ear_tag",
-        r"kelamin|jenis[a-z]?k|k[a-z]lamin": "jenis_kelamin",
-        r"lahir|l[a-z]hir|tanggal|t[a-z]nggal|tgl": "tanggal_lahir",
-        r"domba|ras|breed|d[a-z]mba": "jenis_domba",
+        r"induk": "ear_tag_induk",
+        r"jantan.*ear|ear.*jantan|pejantan": "ear_tag_jantan",
+        r"ear.?tag": "ear_tag",
+        r"jenis.?kelamin|kelamin": "jenis_kelamin",
+        r"tanggal.?lahir|lahir|tgl": "tanggal_lahir",
+        r"jenis.?domba|ras|breed": "jenis_domba",
         r"catatan|note|keterangan": "catatan"
     }
     KB_MAP = {"jenis_kelamin": KB_KELAMIN, "jenis_domba": KB_RAS}
@@ -598,88 +386,6 @@ def parse_data_domba_card(raw_text):
     return record
 
 # ==================================================================
-# DATA VALIDATION — Cleaning Teks Mentah via Pandas
-# ==================================================================
-def _normalize_unicode_chars(value):
-    """Normalisasi karakter unicode yang sering muncul dari hasil OCR."""
-    if not isinstance(value, str):
-        return value
-    replacements = {
-        '\u2013': '-', '\u2014': '-',   # en-dash, em-dash → hyphen
-        '\u2018': "'", '\u2019': "'",   # smart single quotes
-        '\u201c': '"', '\u201d': '"',   # smart double quotes
-        '\u2026': '...',                # ellipsis
-        '\u00a0': ' ',                  # non-breaking space
-    }
-    for old, new in replacements.items():
-        value = value.replace(old, new)
-    return value
-
-
-def validate_ocr_dataframe(record, form_type):
-    """Cleaning dan validasi data hasil OCR menggunakan Pandas DataFrame.
-
-    Sesuai alur sistem: 'Data Validation (Cleaning Teks Mentah via Pandas)'
-
-    Tahapan:
-    1. Konversi record dict → Pandas DataFrame
-    2. Strip whitespace & normalisasi karakter unicode
-    3. Hapus nilai noise-only (hanya simbol/spasi)
-    4. Validasi format spesifik per field (ear_tag, tanggal, berat)
-    5. Konversi kembali ke dict yang bersih
-    """
-    if not record:
-        return record
-
-    df = pd.DataFrame([record])
-
-    # --- Tahap 1: Cleaning umum semua kolom ---
-    for col in df.columns:
-        # Strip whitespace
-        df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
-        # Normalisasi karakter unicode
-        df[col] = df[col].apply(_normalize_unicode_chars)
-        # Hapus nilai noise-only (hanya simbol/dash/spasi)
-        df[col] = df[col].apply(
-            lambda x: None if isinstance(x, str) and re.match(r'^[\s\-~_.,:;|/\\*]+$', x) else x
-        )
-        # Kosongkan string empty
-        df[col] = df[col].apply(lambda x: None if isinstance(x, str) and not x.strip() else x)
-
-    # --- Tahap 2: Validasi format spesifik ---
-    # Ear tag: harus berisi digit
-    ear_tag_cols = [c for c in df.columns if 'ear_tag' in c]
-    for col in ear_tag_cols:
-        val = df.at[0, col]
-        if isinstance(val, str):
-            digits = re.sub(r'[^\d]', '', val)
-            df.at[0, col] = digits if digits else None
-
-    # Tanggal: normalisasi separator, hapus spasi berlebih
-    date_cols = [c for c in df.columns if 'tanggal' in c]
-    for col in date_cols:
-        val = df.at[0, col]
-        if isinstance(val, str):
-            normalized = re.sub(r'\s+', '', val)
-            df.at[0, col] = normalized if re.search(r'\d', normalized) else None
-
-    # Berat badan: harus ada angka
-    if 'berat_badan' in df.columns:
-        val = df.at[0, 'berat_badan']
-        if isinstance(val, str) and not re.search(r'\d', val):
-            df.at[0, 'berat_badan'] = None
-
-    # --- Tahap 3: Konversi kembali ke dict ---
-    cleaned = {}
-    for col in df.columns:
-        val = df.at[0, col]
-        if isinstance(val, str) and val:
-            cleaned[col] = val
-        else:
-            cleaned[col] = None
-    return cleaned
-
-# ==================================================================
 # ROUTER & PIPELINE
 # ==================================================================
 def detect_form_type(text):
@@ -705,23 +411,9 @@ def detect_form_type(text):
     return "UNKNOWN"
 
 def process_form_image(image_path):
-    """Pipeline utama OCR: preprocessing → engine → parsing → validasi.
-
-    Mengintegrasikan semua layer:
-    - Model Registry: konfigurasi dari Joblib
-    - Image Pre-processing: Pillow + OpenCV
-    - OCR Engine: Tesseract dengan smart fallback
-    - NLP Text Correction: fuzzy matching
-    - Data Validation: cleaning via Pandas
-    - JSON serialization: validasi output
-    """
-    registry = get_registry()
-    tess_config = registry.get_config("tesseract")
-    min_confidence = tess_config.get("confidence_threshold", 50)
-
     img, confidence = preprocess_image(image_path)
 
-    if confidence < min_confidence:
+    if confidence < 50:
         return {"success": False, "message": f"Confidence terlalu rendah ({confidence}%)", "data": None}
 
     raw_text = run_ocr_engine(img)
@@ -734,10 +426,7 @@ def process_form_image(image_path):
     elif form_type == "PERKAWINAN": record = parse_perkawinan_card(raw_text)
     elif form_type == "DATA_DOMBA": record = parse_data_domba_card(raw_text)
 
-    # Data Validation: Cleaning teks mentah via Pandas
-    record = validate_ocr_dataframe(record, form_type)
-
-    result = {
+    return {
         "success": True,
         "message": "OCR Berhasil",
         "form_type": form_type,
@@ -746,14 +435,3 @@ def process_form_image(image_path):
         "details": record,
         "data": record
     }
-
-    # Pastikan output JSON-serializable (menggunakan json module)
-    try:
-        json.dumps(result, ensure_ascii=False)
-    except (TypeError, ValueError):
-        for key in ("details", "data"):
-            if key in result and result[key]:
-                result[key] = {k: str(v) if v is not None else None
-                               for k, v in result[key].items()}
-
-    return result
