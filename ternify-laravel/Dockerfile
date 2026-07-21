@@ -1,5 +1,5 @@
 # 1. Menggunakan base image PHP 8.2 dengan web server Apache terintegrasi
-FROM php:8.2-apache
+FROM php:8.4-apache
 
 # 2. Memperbarui sistem Ubuntu di dalam kontainer dan menginstal dependensi sistem
 RUN apt-get update && apt-get install -y \
