@@ -1,4 +1,4 @@
-# 1. Menggunakan base image PHP 8.2 dengan web server Apache terintegrasi
+# 1. Menggunakan base image PHP 8.4 dengan web server Apache terintegrasi
 FROM php:8.4-apache
 
 # 2. Memperbarui sistem Ubuntu di dalam kontainer dan menginstal dependensi sistem
@@ -17,8 +17,10 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# 4. Mengaktifkan modul mod_rewrite Apache (wajib agar routing Laravel berfungsi)
-RUN a2enmod rewrite
+# 4. MEMPERBAIKI KONFLIK MPM & Mengaktifkan modul mod_rewrite Apache
+# (Mematikan mpm_event dan mpm_worker jika aktif, lalu memastikan mpm_prefork yang digunakan)
+RUN a2dismod mpm_event mpm_worker || true \
+    && a2enmod mpm_prefork rewrite
 
 # 5. Menginstal Composer langsung dari image resminya
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
